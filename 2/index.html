@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0b12">
+<title>Файний рік</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Manrope:wght@500;700;800&display=swap">
+<style>
+  /* Сезон 2: сторіс-підсумки року. Тап справа — далі, зліва — назад, затиснути — пауза.
+     Слайди: інтро → лічильник → питання → топ-5 → карта дня → саундтрек (звук) → графік → фінальна картка.
+     Тексти — в <script>, у функціях слайдів. */
+  :root {
+    --ink: #0d0b12;
+    --paper: #fff6ea;
+    --violet: #5b2cff;
+    --pink: #ff2e88;
+    --lime: #c8ff2e;
+    --navy: #10205e;
+    --plum: #2a0f3d;
+    --orange: #ff6a1a;
+    --red: #ff4646;
+    --display: "Dela Gothic One", "Arial Black", Impact, sans-serif;
+    --font: "Manrope", "Segoe UI", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--ink); color: var(--paper); font-family: var(--font);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+
+  .phone { position: relative; height: 100%; max-width: 480px; margin: 0 auto; overflow: hidden; }
+  .bars {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 10;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
+    display: flex; gap: 4px;
+  }
+  .bars i { flex: 1; height: 3px; border-radius: 3px; background: rgba(255,255,255,.3); overflow: hidden; }
+  .bars i b { display: block; height: 100%; width: 0; background: #fff; }
+  .top {
+    position: absolute; left: 0; right: 0; z-index: 10;
+    top: calc(22px + env(safe-area-inset-top, 0px));
+    padding: 0 14px; display: flex; align-items: center; gap: 8px;
+    font: 800 .82rem var(--font);
+  }
+  .top .av { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; font-size: .9rem; border: 2px solid #fff; }
+  .top span { opacity: .75; font-weight: 600; }
+  .top .mute { margin-left: auto; font-size: 1.1rem; padding: 4px; }
+
+  .slide {
+    position: absolute; inset: 0;
+    padding: calc(76px + env(safe-area-inset-top, 0px)) 22px calc(30px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; justify-content: safe center; gap: 16px;
+    overflow-y: auto;
+    background: var(--bg, var(--violet)); color: var(--fg, var(--paper));
+  }
+  .slide.enter { animation: slin .45s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes slin { from { opacity: 0; transform: scale(1.04); } }
+  .slide > * { animation: up .55s cubic-bezier(.2,.9,.3,1) both; }
+  .slide > *:nth-child(2) { animation-delay: .12s; } .slide > *:nth-child(3) { animation-delay: .24s; }
+  .slide > *:nth-child(4) { animation-delay: .36s; } .slide > *:nth-child(5) { animation-delay: .48s; }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } }
+
+  .eyebrow { font: 800 .75rem var(--font); letter-spacing: .14em; text-transform: uppercase; opacity: .8; }
+  .big { margin: 0; font: 400 clamp(2.6rem, 13vw, 4rem)/.95 var(--display); text-wrap: balance; }
+  .mid { margin: 0; font: 400 clamp(1.5rem, 7.2vw, 2.1rem)/1.08 var(--display); text-wrap: balance; }
+  .txt { margin: 0; font: 700 1.1rem/1.4 var(--font); max-width: 34ch; }
+  .small { font: 600 .9rem/1.35 var(--font); opacity: .8; }
+  .tapnote { position: absolute; left: 0; right: 0; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); text-align: center; font: 700 .8rem var(--font); opacity: .7; animation: breathe 2s ease-in-out infinite !important; }
+  @keyframes breathe { 50% { opacity: .3; } }
+
+  .counter { font: 400 clamp(2.8rem, 15vw, 4.6rem)/1 var(--display); font-variant-numeric: tabular-nums; color: var(--lime); }
+
+  .opts { display: grid; gap: 10px; }
+  .opts button {
+    padding: 16px 18px; border-radius: 18px; text-align: left;
+    background: var(--ink); color: var(--paper);
+    font: 800 1.15rem var(--font);
+    display: flex; justify-content: space-between; align-items: center;
+    transition: transform .15s, background .2s;
+  }
+  .opts button:active { transform: scale(.97); }
+  .opts button.no { background: var(--red); animation: shake .4s ease; }
+  .opts button.yes { background: var(--violet); }
+  @keyframes shake { 20%,60% { transform: translateX(-7px); } 40%,80% { transform: translateX(7px); } }
+  .verdict { min-height: 1.4em; font: 800 1.1rem var(--font); }
+
+  .top5 { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+  .top5 li { display: grid; grid-template-columns: 2.2rem 1fr; align-items: baseline; gap: 10px; opacity: 0; transform: translateX(-20px); transition: all .5s cubic-bezier(.2,.9,.3,1); }
+  .top5 li.on { opacity: 1; transform: none; }
+  .top5 .n { font: 400 1.9rem/1 var(--display); color: var(--lime); }
+  .top5 b { display: block; font: 400 1.35rem/1.1 var(--display); }
+  .top5 small { font: 600 .92rem var(--font); opacity: .8; }
+
+  .tarot { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tc { aspect-ratio: 2/3.2; perspective: 800px; }
+  .tc .in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,1.3,.5,1); }
+  .tc.open .in { transform: rotateY(180deg); }
+  .tc .f { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; text-align: center; padding: 8px; }
+  .tc .bk {
+    background:
+      repeating-linear-gradient(45deg, rgba(200,255,46,.16) 0 2px, transparent 2px 12px),
+      var(--violet);
+    border: 2px solid var(--lime); font-size: 2rem;
+  }
+  .tc .fr { transform: rotateY(180deg); background: var(--paper); color: var(--ink); align-content: center; gap: 6px; }
+  .tc .fr .e { font-size: 1.8rem; }
+  .tc .fr b { font: 400 .85rem var(--display); }
+  .tc .fr span { font: 700 .78rem/1.25 var(--font); }
+  .tc.pick .bk, .tc.pick .fr { box-shadow: 0 0 0 3px var(--lime), 0 0 26px rgba(200,255,46,.6); }
+
+  .player { background: var(--ink); color: var(--paper); border-radius: 26px; padding: 18px; display: grid; gap: 14px; }
+  .cover {
+    aspect-ratio: 1; width: min(100%, 30vh); justify-self: center;
+    border-radius: 18px; position: relative; overflow: hidden;
+    background: radial-gradient(circle at 30% 30%, var(--pink), transparent 60%), radial-gradient(circle at 70% 70%, var(--lime), transparent 55%), var(--violet);
+    display: grid; place-items: center; max-width: 100%;
+  }
+  .cover .disc { width: 62%; aspect-ratio: 1; border-radius: 50%; background: repeating-radial-gradient(circle, #111 0 3px, #1d1d1d 3px 5px); display: grid; place-items: center; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .cover .disc::after { content: ""; width: 30%; aspect-ratio: 1; border-radius: 50%; background: var(--lime); }
+  .playing .disc { animation: spin 3s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .meta b { display: block; font: 400 1.3rem var(--display); }
+  .meta span { font: 600 .9rem var(--font); opacity: .7; }
+  .ctl { display: flex; align-items: center; gap: 14px; }
+  .play { width: 58px; height: 58px; border-radius: 50%; background: var(--lime); color: var(--ink); font-size: 1.4rem; flex: none; }
+  .eq { display: flex; align-items: flex-end; gap: 3px; height: 34px; flex: 1; }
+  .eq i { flex: 1; height: 15%; background: var(--pink); border-radius: 2px; transition: height .12s; }
+  .lyric { min-height: 2.6em; font: 800 1.1rem/1.3 var(--font); color: var(--lime); text-align: center; }
+
+  .chart { width: 100%; height: auto; max-width: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font: 800 .9rem var(--font); }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+  .final { background: var(--paper); color: var(--ink); border-radius: 26px; padding: 22px 20px; display: grid; gap: 12px; }
+  .final h3 { margin: 0; font: 400 1.6rem/1 var(--display); }
+  .final dl { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font: 700 .95rem var(--font); }
+  .final dt { opacity: .6; }
+  .final dd { margin: 0; font-weight: 800; text-align: right; }
+  .final .sign { font: 800 .95rem var(--font); color: var(--violet); }
+  .again { align-self: center; padding: 12px 20px; border-radius: 999px; background: var(--ink); color: var(--paper); font: 800 .95rem var(--font); }
+
+  .nudge { animation: shake .4s ease !important; }
+  #fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide, .slide > *, .tapnote { animation: none !important; }
+    .playing .disc { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+  <div class="bars" id="bars"></div>
+  <div class="top"><div class="av">🕶️</div>таємний фанат <span>· сезон 2</span><button class="mute" id="mute" aria-label="Звук">🔊</button></div>
+  <div id="stage"></div>
+</div>
+<canvas id="fx"></canvas>
+
+<script>
+(() => {
+  const SIGNATURE = 'від того, хто на твоїй стороні 🖤';
+  const $ = s => document.querySelector(s);
+  const stage = $('#stage'), barsEl = $('#bars');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const memo = { card: null };
+  let muted = false;
+
+  // ---------- Slides ----------
+  // auto: ms до автоперемикання (0 = чекає тапу); gate: треба щось зробити, щоб іти далі
+  const SLIDES = [
+    { bg: 'var(--violet)', auto: 7000, html: `
+      <div class="eyebrow">сезон 2 · підсумки</div>
+      <h1 class="big">Файний рік</h1>
+      <p class="txt">Квест ти пройшла. Сервер ся полагодив — і, поки лежав, зібрав про тебе статистику 📊</p>
+      <p class="small">тицяй справа — далі, зліва — назад, затисни — пауза</p>` },
+
+    { bg: 'var(--pink)', auto: 7500, html: `
+      <div class="eyebrow">статистика</div>
+      <p class="mid">Цього року на тя задивилися</p>
+      <div class="counter" id="cnt">0</div>
+      <p class="mid">разів</p>
+      <p class="small">і то лем ті, што ся признали 👀</p>`,
+      enter(s) { rollTo(s.querySelector('#cnt'), 1284093, 2200); } },
+
+    { bg: 'var(--lime)', fg: 'var(--ink)', gate: true, html: `
+      <div class="eyebrow">питання на засипку 🤔</div>
+      <p class="mid">Скільки разів за день ти буваєш файна?</p>
+      <div class="opts">
+        <button data-a="0">10 разів <span>🙂</span></button>
+        <button data-a="0">100 разів <span>😎</span></button>
+        <button data-a="1">фурт <span>🔥</span></button>
+      </div>
+      <div class="verdict" id="vd"></div>`,
+      enter(s, done) {
+        const vd = s.querySelector('#vd');
+        const wrong = ['мало. гет мало 🙄', 'ніт. бери вище'];
+        let k = 0;
+        s.querySelectorAll('.opts button').forEach(b => b.onclick = e => {
+          e.stopPropagation();
+          if (b.dataset.a === '1') {
+            b.classList.add('yes'); vd.textContent = 'айно. фурт. без вихідних і обідньої перерви ✓';
+            const r = b.getBoundingClientRect(); burst(r.right - 30, r.top + r.height / 2, ['🔥', '✨', '💅'], 14);
+            s.querySelectorAll('.opts button').forEach(x => x.onclick = ev => ev.stopPropagation());
+            done(3200);
+          } else {
+            b.classList.remove('no'); void b.offsetWidth; b.classList.add('no');
+            vd.textContent = wrong[k++ % 2];
+            navigator.vibrate?.(60);
+          }
+        });
+      } },
+
+    { bg: 'var(--navy)', auto: 11000, html: `
+      <div class="eyebrow">твої топ-5 суперсил</div>
+      <ol class="top5">
+        <li><span class="n">1</span><div><b>Усмішка</b><small>крутиться в голові на репіті</small></div></li>
+        <li><span class="n">2</span><div><b>Очі</b><small>глянеш — і всьо, ми пропали</small></div></li>
+        <li><span class="n">3</span><div><b>Сміх</b><small>заразний, ги позіхання</small></div></li>
+        <li><span class="n">4</span><div><b>Серце</b><small>золоте, 999 проба</small></div></li>
+        <li><span class="n">5</span><div><b>Вайб</b><small>ніхто не повторить. пробували</small></div></li>
+      </ol>`,
+      enter(s) { s.querySelectorAll('.top5 li').forEach((li, i) => setTimeout(() => li.classList.add('on'), 350 + i * 450)); } },
+
+    { bg: 'var(--plum)', gate: true, html: `
+      <div class="eyebrow">карта дня 🔮</div>
+      <p class="mid">Вибери одну. Не думай.</p>
+      <div class="tarot">
+        ${[['⭐', 'Зірка', 'чекає тя щось барз файне'], ['☀️', 'Сонце', 'ти світиш, навіть кедь не знаєш'], ['👑', 'Королева', 'ну тут без коментарів']]
+          .map(([e, n, t], i) => `<button class="tc" data-i="${i}" data-n="${n}"><div class="in"><div class="f bk">✦</div><div class="f fr"><span class="e">${e}</span><b>${n}</b><span>${t}</span></div></div></button>`).join('')}
+      </div>
+      <p class="txt" id="tt" style="min-height:2.8em"></p>`,
+      enter(s, done) {
+        let picked = false;
+        s.querySelectorAll('.tc').forEach(c => c.onclick = e => {
+          e.stopPropagation();
+          if (picked) return;
+          picked = true;
+          memo.card = c.dataset.n;
+          c.classList.add('open', 'pick');
+          const r = c.getBoundingClientRect(); burst(r.left + r.width / 2, r.top + r.height / 2, ['✨', '🔮', '⭐'], 12);
+          setTimeout(() => {
+            s.querySelectorAll('.tc').forEach(x => x.classList.add('open'));
+            s.querySelector('#tt').textContent = 'А тепер глянь на решту. Ага, всі три про тебе. Ги ти думала 😏';
+            done(5200);
+          }, 1300);
+        });
+      } },
+
+    { bg: 'var(--orange)', html: `
+      <div class="eyebrow">саундтрек твого року 🎧</div>
+      <div class="player" id="pl">
+        <div class="cover"><div class="disc"></div></div>
+        <div class="meta"><b>Барз файна</b><span>feat. всі зорі Закарпаття</span></div>
+        <div class="ctl"><button class="play" id="pb" aria-label="Грати">▶&#xFE0E;</button><div class="eq" id="eq">${'<i></i>'.repeat(14)}</div></div>
+        <div class="lyric" id="ly">натисни ▶&#xFE0E; (звук!)</div>
+      </div>`,
+      enter(s) {
+        const pb = s.querySelector('#pb');
+        pb.onclick = e => {
+          e.stopPropagation();
+          if (song.on) { song.stop(); pb.textContent = '▶︎'; s.querySelector('#pl').classList.remove('playing'); }
+          else { song.play(s); pb.textContent = '❚❚'; s.querySelector('#pl').classList.add('playing'); }
+        };
+      },
+      leave() { song.stop(); } },
+
+    { bg: 'var(--ink)', auto: 9000, html: `
+      <div class="eyebrow">графік року 📈</div>
+      <svg class="chart" viewBox="0 0 320 220" aria-label="Кринж падає, файність росте">
+        <g stroke="rgba(255,246,234,.12)" stroke-width="1">
+          <line x1="30" y1="30" x2="310" y2="30"/><line x1="30" y1="80" x2="310" y2="80"/><line x1="30" y1="130" x2="310" y2="130"/><line x1="30" y1="180" x2="310" y2="180"/>
+        </g>
+        <path id="lc" d="M30 60 C70 50 100 70 130 55 S170 50 180 62 L200 150 C230 170 260 176 310 178" fill="none" stroke="#ff4646" stroke-width="4" stroke-linecap="round"/>
+        <path id="lf" d="M30 120 C80 118 120 110 180 100 C220 90 260 60 290 26 L304 4" fill="none" stroke="#c8ff2e" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="190" cy="105" r="5" fill="#fff6ea"/>
+        <text x="196" y="124" fill="#fff6ea" font-family="Manrope, sans-serif" font-weight="800" font-size="11">тут 🚩 вийшов з чату</text>
+        <text x="296" y="16" fill="#c8ff2e" font-family="Manrope, sans-serif" font-weight="800" font-size="10" text-anchor="end">не влазить ↑</text>
+        <text x="30" y="205" fill="rgba(255,246,234,.6)" font-family="Manrope, sans-serif" font-weight="700" font-size="11">раніше</text>
+        <text x="310" y="205" fill="rgba(255,246,234,.6)" font-family="Manrope, sans-serif" font-weight="700" font-size="11" text-anchor="end">тепер</text>
+      </svg>
+      <div class="legend"><span><i style="background:var(--red)"></i>кринж у житті</span><span><i style="background:var(--lime)"></i>твоя файність</span></div>
+      <p class="small">наука не бреше. графік намальовано чесно (майже)</p>`,
+      enter(s) {
+        ['#lc', '#lf'].forEach((id, i) => {
+          const p = s.querySelector(id), L = p.getTotalLength();
+          p.style.strokeDasharray = L; p.style.strokeDashoffset = L;
+          p.getBoundingClientRect();
+          p.style.transition = `stroke-dashoffset ${reduced ? .1 : 2.2}s ease ${0.3 + i * .4}s`;
+          p.style.strokeDashoffset = 0;
+        });
+      } },
+
+    { bg: 'linear-gradient(160deg, var(--pink), var(--violet))', html: `
+      <div class="eyebrow">твій рік одним скріном 📸</div>
+      <div class="final">
+        <h3>Файний рік</h3>
+        <dl>
+          <dt>задивилися</dt><dd>1 284 093 рази</dd>
+          <dt>файна</dt><dd>фурт</dd>
+          <dt>суперсила №1</dt><dd>усмішка</dd>
+          <dt>карта дня</dt><dd id="fc">—</dd>
+          <dt>саундтрек</dt><dd>Барз файна</dd>
+          <dt>кринж</dt><dd>0%</dd>
+          <dt>файність</dt><dd>не влазить у графік</dd>
+        </dl>
+        <div class="sign">${SIGNATURE}</div>
+      </div>
+      <p class="mid" style="text-align:center">сезон 3? 👀</p>
+      <button class="again" id="ag">переглянути ще раз</button>`,
+      enter(s) {
+        s.querySelector('#fc').textContent = memo.card || 'всі три';
+        s.querySelector('#ag').onclick = e => { e.stopPropagation(); show(0); };
+        const r = s.getBoundingClientRect();
+        let t = 0;
+        const fire = setInterval(() => {
+          burst(r.left + Math.random() * r.width, r.bottom - 20, ['✨', '💖', '👑', '⭐', '🔥'], 5, true);
+          if (++t > (reduced ? 2 : 14)) clearInterval(fire);
+        }, 140);
+      } },
+  ];
+
+  // ---------- Story engine ----------
+  barsEl.innerHTML = SLIDES.map(() => '<i><b></b></i>').join('');
+  const fills = [...barsEl.querySelectorAll('b')];
+  let cur = -1, el = null, elapsed = 0, dur = 0, paused = false, unlocked = false, lastT = 0;
+
+  function show(i) {
+    if (cur >= 0 && SLIDES[cur].leave) SLIDES[cur].leave();
+    cur = Math.max(0, Math.min(i, SLIDES.length - 1));
+    const sd = SLIDES[cur];
+    fills.forEach((f, k) => f.style.width = k < cur ? '100%' : '0%');
+    const s = document.createElement('section');
+    s.className = 'slide enter';
+    s.style.setProperty('--bg', sd.bg);
+    if (sd.fg) s.style.setProperty('--fg', sd.fg);
+    s.innerHTML = sd.html;
+    if (!sd.auto && !sd.gate && cur < SLIDES.length - 1) s.insertAdjacentHTML('beforeend', '<div class="tapnote">тицяй справа, коли дослухаєш →</div>');
+    stage.innerHTML = '';
+    stage.appendChild(s);
+    el = s;
+    elapsed = 0; dur = sd.auto || 0; unlocked = !sd.gate;
+    sd.enter?.(s, after => { unlocked = true; dur = after; elapsed = 0; });
+  }
+  function next() {
+    if (!unlocked) { el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); return; }
+    if (cur < SLIDES.length - 1) show(cur + 1);
+  }
+  function prev() { show(cur - 1); }
+
+  function tick(t) {
+    const dt = lastT ? t - lastT : 0; lastT = t;
+    if (dur && !paused) {
+      elapsed += dt;
+      fills[cur].style.width = Math.min(elapsed / dur * 100, 100) + '%';
+      if (elapsed >= dur && cur < SLIDES.length - 1) show(cur + 1);
+    } else if (!dur && unlocked && cur === SLIDES.length - 1) fills[cur].style.width = '100%';
+    requestAnimationFrame(tick);
+  }
+
+  // Tap / hold
+  let downAt = 0, downX = 0;
+  $('#phone').addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return;
+    downAt = performance.now(); downX = e.clientX; paused = true;
+  });
+  addEventListener('pointerup', e => {
+    if (!downAt) return;
+    const held = performance.now() - downAt;
+    downAt = 0; paused = false;
+    if (held > 350) return;
+    const r = $('#phone').getBoundingClientRect();
+    (downX - r.left < r.width * 0.3) ? prev() : next();
+  });
+  addEventListener('pointercancel', () => { downAt = 0; paused = false; });
+  addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft') prev();
+  });
+  $('#mute').onclick = e => { e.stopPropagation(); muted = !muted; e.currentTarget.textContent = muted ? '🔇' : '🔊'; song.gain && (song.gain.gain.value = muted ? 0 : .5); };
+
+  function rollTo(node, target, ms) {
+    const t0 = performance.now(), D = reduced ? 100 : ms;
+    const fmt = n => Math.round(n).toLocaleString('uk-UA');
+    const step = t => {
+      const p = Math.min((t - t0) / D, 1), e = 1 - Math.pow(1 - p, 3);
+      node.textContent = fmt(target * e);
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ---------- Little synth song ----------
+  const song = {
+    on: false, ac: null, gain: null, timer: 0, raf: 0,
+    // [нота MIDI або 0, довжина у восьмих]
+    mel: [[72,1],[76,1],[79,2],[76,1],[79,1],[81,2],[79,1],[77,1],[76,1],[74,1],[76,4],
+          [74,1],[77,1],[81,2],[79,1],[77,1],[76,2],[74,1],[72,1],[74,1],[76,1],[72,4]],
+    bass: [48, 48, 55, 55, 57, 57, 53, 55],
+    lyrics: ['ой, ти така файна-файна…', 'очі ги два космоси ✨', 'усміхнешся — і цілий город світиться', 'барз файна, барз файна 🎶', 'навіть зорі ся переглядают', 'бо таку другу не найдут 💖'],
+    play(s) {
+      try {
+        this.ac = this.ac || new (window.AudioContext || window.webkitAudioContext)();
+        this.ac.resume();
+      } catch (e) { return; }
+      this.on = true;
+      const ac = this.ac;
+      this.gain = ac.createGain(); this.gain.gain.value = muted ? 0 : .5; this.gain.connect(ac.destination);
+      const out = this.gain;
+      const e8 = 60 / 132 / 2;
+      const note = (m, t, len, type, vol) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = type; o.frequency.value = 440 * Math.pow(2, (m - 69) / 12);
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .015);
+        g.gain.exponentialRampToValueAtTime(.001, t + len * .95);
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + len);
+      };
+      let t = ac.currentTime + .08;
+      const schedule = () => {
+        if (!this.on) return;
+        let tt = t;
+        for (const [m, l] of this.mel) { if (m) note(m, tt, l * e8, 'triangle', .22); tt += l * e8; }
+        const bars = (tt - t) / (e8 * 4);
+        for (let b = 0; b < bars; b++) {
+          const bn = this.bass[b % this.bass.length];
+          note(bn - 12, t + b * e8 * 4, e8 * 1.8, 'sine', .35);
+          note(bn - 12, t + b * e8 * 4 + e8 * 2, e8 * 1.5, 'sine', .25);
+          for (let h = 0; h < 4; h++) { // tiny hi-hat
+            const n = ac.createBufferSource(), buf = ac.createBuffer(1, 800, ac.sampleRate), d = buf.getChannelData(0);
+            for (let i = 0; i < 800; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / 800);
+            const hg = ac.createGain(); hg.gain.value = h % 2 ? .05 : .09;
+            const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 6000;
+            n.buffer = buf; n.connect(hp); hp.connect(hg); hg.connect(out); n.start(t + b * e8 * 4 + h * e8);
+          }
+        }
+        const len = tt - t;
+        this.timer = setTimeout(schedule, (len - .3) * 1000);
+        t = tt;
+      };
+      schedule();
+      // eq + lyrics
+      const eq = [...s.querySelectorAll('#eq i')], ly = s.querySelector('#ly');
+      let li = 0, lastLy = 0;
+      const anim = now => {
+        if (!this.on) { eq.forEach(i => i.style.height = '15%'); return; }
+        eq.forEach((i, k) => i.style.height = (20 + Math.abs(Math.sin(now / 160 + k * 1.3)) * 60 + Math.random() * 20) + '%');
+        if (now - lastLy > 2600) { lastLy = now; ly.textContent = this.lyrics[li++ % this.lyrics.length]; }
+        this.raf = requestAnimationFrame(anim);
+      };
+      this.raf = requestAnimationFrame(anim);
+    },
+    stop() {
+      if (!this.on) return;
+      this.on = false;
+      clearTimeout(this.timer); cancelAnimationFrame(this.raf);
+      try { this.gain.gain.setTargetAtTime(0, this.ac.currentTime, .05); const g = this.gain; setTimeout(() => g.disconnect(), 400); } catch (e) {}
+    },
+  };
+
+  // ---------- FX ----------
+  const fx = $('#fx'), ctx = fx.getContext('2d');
+  let DPR;
+  const sprites = new Map(), bits = [];
+  function sprite(ch) {
+    let s = sprites.get(ch);
+    if (s) return s;
+    s = document.createElement('canvas');
+    s.width = s.height = 64 * DPR;
+    const g = s.getContext('2d');
+    g.font = `${51 * DPR}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(ch, s.width / 2, s.height / 2 + 3 * DPR);
+    sprites.set(ch, s);
+    return s;
+  }
+  function burst(x, y, set, n = 8, up = false) {
+    if (reduced) n = Math.min(n, 3);
+    for (let i = 0; i < n; i++) {
+      if (bits.length > 200) bits.shift();
+      const ch = set[(Math.random() * set.length) | 0];
+      const a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 5;
+      bits.push({ ch, img: sprite(ch), x, y,
+        vx: up ? (Math.random() - .5) * 4 : Math.cos(a) * sp,
+        vy: up ? -(5 + Math.random() * 7) : Math.sin(a) * sp - 3,
+        g: up ? .12 : .28, rot: (Math.random() - .5) * .6, vr: (Math.random() - .5) * .15,
+        size: 18 + Math.random() * 18, life: 80 });
+    }
+  }
+  let dirty = false;
+  function loop() {
+    if (bits.length || dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, fx.width, fx.height); dirty = bits.length > 0; }
+    let alive = 0;
+    for (const b of bits) {
+      if (--b.life <= 0) continue;
+      bits[alive++] = b;
+      b.vy += b.g; b.vx *= .98; b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+      const c = Math.cos(b.rot) * DPR, sn = Math.sin(b.rot) * DPR, r = b.size / 2;
+      ctx.setTransform(c, sn, -sn, c, b.x * DPR, b.y * DPR);
+      ctx.globalAlpha = b.life < 25 ? b.life / 25 : 1;
+      ctx.drawImage(b.img, -r, -r, b.size, b.size);
+    }
+    bits.length = alive; ctx.globalAlpha = 1;
+    requestAnimationFrame(loop);
+  }
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    fx.width = innerWidth * DPR; fx.height = innerHeight * DPR;
+    sprites.clear(); for (const b of bits) b.img = sprite(b.ch);
+  }
+  resize();
+  addEventListener('resize', resize);
+  requestAnimationFrame(loop);
+  requestAnimationFrame(tick);
+  show(0);
+})();
+</script>
+</body>
+</html>
