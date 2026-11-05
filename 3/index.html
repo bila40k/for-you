@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#140a1f">
+<title>Втеча від кринжу</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Manrope:wght@600;800&display=swap">
+<style>
+  /* Сезон 3: аркадна гра-раннер. Героїня на скейті їде через Закарпаття:
+     лвл 1 Ужгород (сакури) → лвл 2 Карпати → лвл 3 Синевир уночі + бос «Кринж».
+     Тап — стрибок, ще тап у повітрі — подвійний. 💖 = комплімент, 🚩 = мінус життя.
+     Тексти — в об'єкті TEXT у <script>. */
+  :root {
+    --ink: #140a1f;
+    --paper: #fff6ea;
+    --pink: #ff2e88;
+    --lime: #c8ff2e;
+    --violet: #5b2cff;
+    --red: #ff4646;
+    --display: "Dela Gothic One", "Arial Black", Impact, sans-serif;
+    --font: "Manrope", "Segoe UI", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--ink); color: var(--paper); font-family: var(--font);
+    overflow: hidden; touch-action: none;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  canvas#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; touch-action: manipulation; }
+
+  .hud {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 5; pointer-events: none;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
+    display: grid; gap: 6px;
+  }
+  .hud .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 800 .95rem var(--font); text-shadow: 0 1px 4px rgba(0,0,0,.5); }
+  .hud .lv { font: 400 .8rem var(--display); letter-spacing: .02em; }
+  .hud .prog { height: 5px; border-radius: 5px; background: rgba(255,255,255,.25); overflow: hidden; }
+  .hud .prog i { display: block; height: 100%; width: 0; background: var(--lime); }
+  .hud .boss { display: grid; gap: 4px; }
+  .hud .boss span { font: 400 .75rem var(--display); color: var(--red); }
+  .hud .boss .prog i { background: var(--red); }
+
+  .ov {
+    position: fixed; inset: 0; z-index: 10;
+    display: grid; place-items: center;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+    background: rgba(20,10,31,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    overflow-y: auto;
+  }
+  .panel {
+    width: min(100%, 420px); display: grid; gap: 14px; justify-items: start;
+    animation: up .5s cubic-bezier(.2,.9,.3,1) both;
+  }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } }
+  .eyebrow { font: 800 .75rem var(--font); letter-spacing: .14em; text-transform: uppercase; color: var(--lime); }
+  .ov h1, .ov h2 { margin: 0; font: 400 clamp(2.2rem, 11vw, 3.4rem)/.98 var(--display); text-wrap: balance; }
+  .ov h2 { font-size: clamp(1.7rem, 8.5vw, 2.5rem); }
+  .ov p { margin: 0; font: 700 1.05rem/1.42 var(--font); max-width: 36ch; }
+  .ov .muted { opacity: .75; font-size: .92rem; }
+  .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font: 700 .95rem var(--font); align-items: center; }
+  .keys b { font-size: 1.3rem; text-align: center; }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; width: 100%; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,.08); font: 700 .98rem var(--font); }
+  .stats dd { margin: 0; font-weight: 800; text-align: right; color: var(--lime); font-variant-numeric: tabular-nums; }
+  .stats dt { opacity: .8; }
+  .stats { margin: 0; }
+  .go {
+    justify-self: stretch; padding: 16px 22px; border-radius: 999px;
+    background: var(--lime); color: var(--ink); font: 400 1.05rem var(--display);
+    box-shadow: 0 6px 0 rgba(0,0,0,.3);
+  }
+  .go:active { transform: translateY(3px); box-shadow: 0 3px 0 rgba(0,0,0,.3); }
+  .go:focus-visible { outline: 3px solid var(--pink); outline-offset: 3px; }
+  .sign { font: 800 1rem var(--font); color: var(--pink); }
+  .crown { font-size: 3.4rem; line-height: 1; }
+  .shake { animation: shake .35s ease; }
+  @keyframes shake { 25% { transform: translate(-6px, 3px); } 50% { transform: translate(5px, -3px); } 75% { transform: translate(-3px, 2px); } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud" id="hud" hidden>
+  <div class="row"><span class="lv" id="lvName"></span><span id="lives">❤️❤️❤️</span></div>
+  <div class="prog" id="progWrap"><i id="prog"></i></div>
+  <div class="boss" id="bossBar" hidden><span>КРИНЖ-БОС</span><div class="prog"><i id="bossHp"></i></div></div>
+  <div class="row"><span></span><span id="score">💖 0</span></div>
+</div>
+
+<div class="ov" id="ov"></div>
+
+<script>
+(() => {
+  // ================== ТЕКСТИ ==================
+  const SIGNATURE = 'від того, хто на твоїй стороні 🖤';
+  const COMPLIMENTS = [
+    'очі ги зорі над Синевиром', 'файніша за всі сакури', 'гори аж присіли', 'та ти космос',
+    'краса — 100 з 10', 'ходяча естетика', 'мейн героїня', 'сонце в людській подобі',
+    'тобі пасує все', 'усмішка-ліхтарик', 'вайб на мільйон', 'файна від і до',
+    'ну просто вау', 'прекрасна, і крапка', 'серце золоте', 'красуня з красунь',
+    'ги з кіно', 'світишся', 'гет найкраща', 'королева швидкості 👑',
+  ];
+  const LEVELS = [
+    { name: 'ЛВЛ 1 · УЖГОРОД', time: 30, speed: 300, gap: .95, floaters: false,
+      intro: ['Сезон 3', 'Втеча від кринжу', 'Тепер ти — головна героїня. На скейті через усе Закарпаття. Збирай 💖 — то компліменти. Стрибай через 🚩 — то кринж. А в кінці… побачиш 👀'],
+      done: ['Ужгород пройдено', 'Сакури ся аж засоромили. Цвіли-цвіли, а файніша все одно ти 🌸'] },
+    { name: 'ЛВЛ 2 · КАРПАТИ', time: 32, speed: 360, gap: .8, floaters: true,
+      intro: ['Лвл 2', 'Карпати', 'Тут швидше. І появляються летючі «кринжі» — під ними краще проїхати, не стрибай 😉'],
+      done: ['Карпати пройдено', 'Гори високі, айбо до твого рівня не дотягують. Говерла нервово курить 🏔️'] },
+    { name: 'ЛВЛ 3 · СИНЕВИР', time: 16, speed: 400, gap: .75, floaters: true, boss: true,
+      intro: ['Лвл 3', 'Синевир. Ніч.', 'Тихо. Зорі. Озеро. І тут з-за гір вилазить він — КРИНЖ-БОС 👹. Кожне 💖, яке зловиш, летить йому в лице.'],
+      done: null },
+  ];
+  // ============================================
+
+  const $ = s => document.querySelector(s);
+  const cv = $('#game'), ctx = cv.getContext('2d');
+  const ov = $('#ov'), hud = $('#hud');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, DPR, S, GROUND;
+
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    S = Math.max(.75, Math.min(H / 720, W / 400, 1.35));
+    GROUND = Math.round(H * .8);
+    sprites.clear();
+    buildScenery();
+  }
+
+  // ---------- Emoji sprites ----------
+  const sprites = new Map();
+  function sprite(ch, px) {
+    const key = ch + px;
+    let s = sprites.get(key);
+    if (s) return s;
+    s = document.createElement('canvas');
+    const n = Math.ceil(px * DPR * 1.25);
+    s.width = s.height = n;
+    const g = s.getContext('2d');
+    g.font = `${px * DPR}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(ch, n / 2, n / 2 + px * DPR * .06);
+    sprites.set(key, s);
+    return s;
+  }
+  function emoji(ch, x, y, px, rot = 0, alpha = 1) {
+    if (!(px >= 2)) return;
+    const s = sprite(ch, Math.round(px));
+    const d = s.width / DPR;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y); if (rot) ctx.rotate(rot);
+    ctx.drawImage(s, -d / 2, -d / 2, d, d);
+    ctx.restore();
+  }
+
+  // ---------- Game state ----------
+  const G = {
+    lv: 0, state: 'menu', t: 0, dist: 0, lives: 3, hearts: 0, totalHearts: 0, jumped: 0,
+    obs: [], items: [], pops: [], parts: [], shots: [], boss: null,
+    spawnT: 0, itemT: 0, inv: 0, shake: 0, crown: false,
+  };
+  const P = { y: 0, vy: 0, jumps: 0, onGround: true };
+  let compIdx = 0;
+  const nextComp = () => COMPLIMENTS[compIdx++ % COMPLIMENTS.length];
+
+  function startLevel(i) {
+    G.lv = i; G.t = 0; G.lives = 3; G.hearts = 0;
+    G.obs = []; G.items = []; G.pops = []; G.shots = []; G.boss = null;
+    G.spawnT = 1.4; G.itemT = .6; G.inv = 0;
+    P.y = 0; P.vy = 0; P.jumps = 0; P.onGround = true;
+    $('#lvName').textContent = LEVELS[i].name;
+    $('#progWrap').hidden = false; $('#bossBar').hidden = true;
+    drawLives(); $('#score').textContent = '💖 0';
+    hud.hidden = false; ov.hidden = true;
+    G.state = 'play';
+  }
+  function drawLives() { $('#lives').textContent = '❤️'.repeat(G.lives) + '🖤'.repeat(3 - G.lives); }
+
+  function jump() {
+    if (G.state !== 'play') return;
+    if (P.onGround) { P.vy = -900 * S; P.onGround = false; P.jumps = 1; puff(); }
+    else if (P.jumps < 2) { P.vy = -800 * S; P.jumps = 2; puff(); }
+  }
+  function puff() { for (let i = 0; i < 6; i++) G.parts.push({ x: px() - 10 * S, y: GROUND - P.y, vx: -60 - Math.random() * 80, vy: -Math.random() * 60, life: .45, max: .45, r: 3 + Math.random() * 4, c: 'rgba(255,255,255,.7)' }); }
+  const px = () => Math.max(70 * S, W * .2);
+
+  // ---------- Spawning ----------
+  function spawnObstacle(L) {
+    const r = Math.random();
+    if (L.floaters && r < .25) {
+      G.obs.push({ kind: 'float', x: W + 60, y: GROUND - 118 * S, w: 92 * S, h: 34 * S });
+    } else if (r < (L.floaters ? .45 : .3)) {
+      G.obs.push({ kind: 'tall', x: W + 40, w: 34 * S, h: 84 * S });
+    } else {
+      G.obs.push({ kind: 'flag', x: W + 40, w: 34 * S, h: 42 * S });
+    }
+  }
+  function spawnItems(L) {
+    const pattern = Math.random();
+    const base = W + 40;
+    if (pattern < .4) G.items.push({ x: base, y: GROUND - 40 * S });
+    else if (pattern < .75) G.items.push({ x: base, y: GROUND - 150 * S });
+    else for (let k = 0; k < 3; k++) G.items.push({ x: base + k * 46 * S, y: GROUND - (60 + Math.sin(k / 2 * Math.PI) * 100) * S });
+  }
+
+  // ---------- Update ----------
+  function update(dt) {
+    const L = LEVELS[G.lv];
+    G.t += dt;
+    const spd = L.speed * S * (1 + Math.min(G.t / L.time, 1) * .15);
+    G.dist += spd * dt;
+
+    // player physics
+    P.vy += 2600 * S * dt;
+    P.y -= P.vy * dt;
+    if (P.y <= 0) { P.y = 0; P.vy = 0; P.onGround = true; P.jumps = 0; }
+    if (G.inv > 0) G.inv -= dt;
+
+    const bossPhase = L.boss && G.t >= L.time;
+    if (!bossPhase) {
+      $('#prog').style.width = Math.min(G.t / L.time * 100, 100) + '%';
+      G.spawnT -= dt;
+      if (G.spawnT <= 0 && G.t < L.time - 1) { spawnObstacle(L); G.spawnT = L.gap + Math.random() * .8; }
+      G.itemT -= dt;
+      if (G.itemT <= 0) { spawnItems(L); G.itemT = .7 + Math.random() * .9; }
+      if (G.t >= L.time && !L.boss && !G.obs.length) return levelDone();
+      if (G.t >= L.time && !L.boss) G.spawnT = 99;
+    } else {
+      if (!G.boss) {
+        G.boss = { hp: 8, x: W + 120 * S, tx: W - 70 * S, y: GROUND - 170 * S, t: 0, throwT: 1.6, flash: 0, dead: 0 };
+        $('#progWrap').hidden = true; $('#bossBar').hidden = false; $('#bossHp').style.width = '100%';
+        G.obs = G.obs.filter(o => o.x < W);
+      }
+      const B = G.boss;
+      B.t += dt;
+      B.x += (B.tx - B.x) * Math.min(1, dt * 2);
+      if (B.flash > 0) B.flash -= dt;
+      if (B.dead) {
+        B.dead += dt;
+        if (B.dead > 1.6) return victory();
+      } else {
+        B.throwT -= dt;
+        if (B.throwT <= 0) {
+          const high = Math.random() < .3;
+          G.obs.push(high
+            ? { kind: 'float', x: B.x - 40 * S, y: GROUND - 118 * S, w: 92 * S, h: 34 * S, fast: 1 }
+            : { kind: 'flag', x: B.x - 40 * S, w: 34 * S, h: 42 * S, fast: 1 });
+          B.throwT = 1.3 + Math.random() * .7;
+        }
+        G.itemT -= dt;
+        if (G.itemT <= 0) { G.items.push({ x: W + 30, y: GROUND - (Math.random() < .5 ? 40 : 140) * S }); G.itemT = .75 + Math.random() * .5; }
+      }
+    }
+
+    // obstacles
+    const pX = px(), pTop = GROUND - P.y - 64 * S, pBot = GROUND - P.y, pL = pX - 14 * S, pR = pX + 14 * S;
+    for (const o of G.obs) {
+      o.x -= (spd + (o.fast ? 140 * S : 0)) * dt;
+      const top = o.kind === 'float' ? o.y : GROUND - o.h;
+      const bot = o.kind === 'float' ? o.y + o.h : GROUND;
+      const oL = o.x - o.w / 2 + 6 * S, oR = o.x + o.w / 2 - 6 * S;
+      if (!o.hit && G.inv <= 0 && pR > oL && pL < oR && pBot > top + 6 * S && pTop < bot - 4 * S) {
+        o.hit = true; hurt();
+      }
+      if (!o.passed && o.x + o.w / 2 < pL) { o.passed = true; if (!o.hit) G.jumped++; }
+    }
+    G.obs = G.obs.filter(o => o.x > -120);
+
+    // hearts
+    for (const it of G.items) {
+      it.x -= spd * dt;
+      if (!it.got && Math.abs(it.x - pX) < 30 * S && it.y > pTop - 18 * S && it.y < pBot + 10 * S) {
+        it.got = true; G.hearts++; G.totalHearts++;
+        $('#score').textContent = '💖 ' + G.hearts;
+        const stack = G.pops.filter(p => !p.red && p.life > .6).length;
+        G.pops.push({ x: pX + 10 * S, y: pTop - 14 * S - stack * 32 * S, text: nextComp(), life: 1.5 });
+        for (let i = 0; i < 8; i++) G.parts.push({ x: it.x, y: it.y, vx: (Math.random() - .5) * 260, vy: (Math.random() - .5) * 260, life: .5, max: .5, r: 2 + Math.random() * 3, c: '#ff2e88' });
+        if (G.boss && !G.boss.dead) G.shots.push({ x: pX, y: pTop + 20 * S });
+        navigator.vibrate?.(10);
+      }
+    }
+    G.items = G.items.filter(it => !it.got && it.x > -40);
+
+    // shots at boss
+    for (const s of G.shots) {
+      const B = G.boss;
+      if (!B) { s.done = true; continue; }
+      const dx = B.x - s.x, dy = B.y - s.y, d = Math.hypot(dx, dy);
+      const v = 900 * S * dt;
+      if (d < v + 30 * S) {
+        s.done = true;
+        if (!B.dead) {
+          B.hp--; B.flash = .25; G.shake = .25;
+          $('#bossHp').style.width = (B.hp / 8 * 100) + '%';
+          G.pops.push({ x: B.x - 40 * S, y: B.y - 70 * S, text: ['ай!', 'йой!', 'то боляче, бо правда', 'кринж слабне', 'ще!'][Math.random() * 5 | 0], life: 1, red: 1 });
+          if (B.hp <= 0) { B.dead = .001; G.obs = []; for (let i = 0; i < 60; i++) G.parts.push({ x: B.x, y: B.y, vx: (Math.random() - .5) * 700, vy: (Math.random() - .7) * 700, life: 1.4, max: 1.4, r: 3 + Math.random() * 5, c: ['#c8ff2e', '#ff2e88', '#fff6ea', '#5b2cff'][i % 4] }); }
+        }
+      } else { s.x += dx / d * v; s.y += dy / d * v; }
+    }
+    G.shots = G.shots.filter(s => !s.done);
+
+    for (const p of G.pops) { p.life -= dt; p.y -= 40 * dt; }
+    G.pops = G.pops.filter(p => p.life > 0);
+    for (const p of G.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 500 * dt; }
+    G.parts = G.parts.filter(p => p.life > 0);
+    if (G.shake > 0) G.shake -= dt;
+    for (const sc of scenery) sc.off = (sc.off + spd * sc.k * dt) % sc.period;
+  }
+
+  function hurt() {
+    G.lives--; G.inv = 1.3; G.shake = .3;
+    drawLives();
+    navigator.vibrate?.(120);
+    G.pops.push({ x: px() + 10 * S, y: GROUND - P.y - 90 * S, text: 'кринж! −❤️', life: 1, red: 1 });
+    if (G.lives <= 0) fail();
+  }
+
+  // ---------- Scenery ----------
+  let scenery = [], stars = [], petals = [];
+  function buildScenery() {
+    scenery = [
+      { k: .15, period: 2000, off: 0 },
+      { k: .35, period: 1200, off: 0 },
+      { k: 1, period: 80 * (S || 1), off: 0 },
+    ];
+    stars = Array.from({ length: Math.round((W || 400) * (H || 700) / 4000) }, () => ({ x: Math.random(), y: Math.random() * .65, r: Math.random() * 1.3 + .3, tw: Math.random() * 6 }));
+    petals = Array.from({ length: 26 }, () => ({ x: Math.random(), y: Math.random(), s: .5 + Math.random(), r: Math.random() * 6 }));
+  }
+  const THEMES = [
+    { sky: ['#ff9ec7', '#ffd1a8'], far: '#e47aa8', near: '#c95b8e', ground: '#3b1d3f', line: 'rgba(255,255,255,.18)' },
+    { sky: ['#5fb6ff', '#c9ecff'], far: '#7d9cc4', near: '#2f6b5a', ground: '#23352c', line: 'rgba(255,255,255,.15)' },
+    { sky: ['#0b0a24', '#2a1f5a'], far: '#1b1844', near: '#0f2a3a', ground: '#0d1a2a', line: 'rgba(160,200,255,.15)' },
+  ];
+  function drawWorld(now) {
+    const th = THEMES[G.lv];
+    const g = ctx.createLinearGradient(0, 0, 0, GROUND);
+    g.addColorStop(0, th.sky[0]); g.addColorStop(1, th.sky[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    if (G.lv === 0) { // sun
+      ctx.fillStyle = 'rgba(255,240,200,.85)';
+      ctx.beginPath(); ctx.arc(W * .78, GROUND * .32, 46 * S, 0, 7); ctx.fill();
+    }
+    if (G.lv === 2) { // stars + moon
+      ctx.fillStyle = '#fff6ea';
+      for (const s of stars) { ctx.globalAlpha = .4 + Math.sin(now / 700 + s.tw) * .3; ctx.beginPath(); ctx.arc(s.x * W, s.y * GROUND, s.r, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.arc(W * .2, GROUND * .2, 30 * S, 0, 7); ctx.fill();
+      ctx.fillStyle = th.sky[0]; ctx.beginPath(); ctx.arc(W * .2 + 12 * S, GROUND * .2 - 6 * S, 26 * S, 0, 7); ctx.fill();
+    }
+
+    // far layer: hills / mountains
+    const far = scenery[0], near = scenery[1];
+    ctx.fillStyle = th.far;
+    ctx.beginPath(); ctx.moveTo(0, GROUND);
+    for (let x = -far.off; x < W + 400; x += 200) {
+      if (G.lv === 0) { ctx.quadraticCurveTo(x + 100, GROUND - 170 * S, x + 200, GROUND - 40 * S); }
+      else { ctx.lineTo(x + 100, GROUND - (200 + ((x + far.off) / 200 % 3) * 40) * S); ctx.lineTo(x + 200, GROUND - 60 * S); }
+    }
+    ctx.lineTo(W, GROUND); ctx.closePath(); ctx.fill();
+    if (G.lv >= 1) { // snow caps
+      ctx.fillStyle = G.lv === 1 ? 'rgba(255,255,255,.85)' : 'rgba(200,210,255,.35)';
+      for (let x = -far.off; x < W + 400; x += 200) {
+        const hh = (200 + ((x + far.off) / 200 % 3) * 40) * S;
+        ctx.beginPath(); ctx.moveTo(x + 100, GROUND - hh); ctx.lineTo(x + 100 - 26 * S, GROUND - hh + 34 * S); ctx.lineTo(x + 100 + 26 * S, GROUND - hh + 34 * S); ctx.fill();
+      }
+    }
+
+    // near layer: sakura trees / pines
+    for (let x = -near.off; x < W + 300; x += 150) {
+      const bx = x + 60;
+      if (G.lv === 0) {
+        ctx.fillStyle = '#5a2c3a'; ctx.fillRect(bx - 4 * S, GROUND - 70 * S, 8 * S, 70 * S);
+        ctx.fillStyle = '#ffb3d1';
+        for (const [dx, dy, r] of [[0, -86, 30], [-24, -70, 22], [24, -70, 22], [-12, -104, 20], [14, -100, 20]]) { ctx.beginPath(); ctx.arc(bx + dx * S, GROUND + dy * S, r * S, 0, 7); ctx.fill(); }
+      } else {
+        ctx.fillStyle = th.near;
+        for (let k = 0; k < 3; k++) {
+          const w = (34 - k * 8) * S, y0 = GROUND - k * 26 * S;
+          ctx.beginPath(); ctx.moveTo(bx, y0 - 60 * S); ctx.lineTo(bx - w, y0); ctx.lineTo(bx + w, y0); ctx.fill();
+        }
+      }
+    }
+
+    // ground
+    ctx.fillStyle = th.ground; ctx.fillRect(0, GROUND, W, H - GROUND);
+    if (G.lv === 2) { // lake shimmer
+      ctx.fillStyle = 'rgba(160,200,255,.12)';
+      for (let i = 0; i < 6; i++) ctx.fillRect(((i * 97 - scenery[2].off * 3) % W + W) % W, GROUND + 26 * S + i * 9 * S, 60 * S, 2);
+    }
+    ctx.strokeStyle = th.line; ctx.lineWidth = 3 * S; ctx.setLineDash([30 * S, 50 * S]);
+    ctx.lineDashOffset = scenery[2].off;
+    ctx.beginPath(); ctx.moveTo(0, GROUND + 14 * S); ctx.lineTo(W, GROUND + 14 * S); ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (G.lv === 0 && !reduced) { // petals
+      ctx.fillStyle = '#ffc2dc';
+      for (const p of petals) {
+        p.y += .0015 * p.s; p.x -= .002 * p.s; if (p.y > 1) { p.y = 0; p.x = Math.random() * 1.2; } if (p.x < -.05) p.x = 1.05;
+        ctx.save(); ctx.translate(p.x * W, p.y * GROUND); ctx.rotate(now / 600 + p.r);
+        ctx.beginPath(); ctx.ellipse(0, 0, 4 * S, 2.2 * S, 0, 0, 7); ctx.fill(); ctx.restore();
+      }
+    }
+  }
+
+  // ---------- Heroine on a skateboard ----------
+  function drawHeroine(now) {
+    const x = px(), y = GROUND - P.y;
+    if (G.inv > 0 && Math.floor(now / 90) % 2) return;
+    const tilt = P.onGround ? Math.sin(now / 160) * .03 : Math.max(-.25, Math.min(.25, P.vy / 3000));
+    ctx.save();
+    ctx.translate(x, y); ctx.scale(S, S); ctx.rotate(tilt);
+    // board
+    ctx.fillStyle = '#c8ff2e';
+    ctx.beginPath(); ctx.roundRect(-26, -10, 52, 6, 3); ctx.fill();
+    ctx.fillStyle = '#140a1f';
+    ctx.beginPath(); ctx.arc(-16, -2, 4, 0, 7); ctx.arc(16, -2, 4, 0, 7); ctx.fill();
+    // legs
+    ctx.strokeStyle = '#2b2440'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-8, -12); ctx.lineTo(-4, -30); ctx.moveTo(10, -12); ctx.lineTo(4, -30); ctx.stroke();
+    // hoodie
+    ctx.fillStyle = '#ff2e88';
+    ctx.beginPath(); ctx.roundRect(-12, -56, 24, 30, 9); ctx.fill();
+    // arm
+    ctx.strokeStyle = '#ff2e88'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(6, -48); ctx.lineTo(20, -38 + (P.onGround ? Math.sin(now / 200) * 3 : -12)); ctx.stroke();
+    // hair back + ponytail
+    const sw = Math.sin(now / 140) * 6 + (P.onGround ? 0 : 8);
+    ctx.fillStyle = '#3a2218';
+    ctx.beginPath(); ctx.ellipse(-12, -64 + sw * .2, 6, 13, -1 - sw * .03, 0, 7); ctx.fill();
+    // head
+    ctx.fillStyle = '#ffd7bd';
+    ctx.beginPath(); ctx.arc(0, -68, 11, 0, 7); ctx.fill();
+    // hair top
+    ctx.fillStyle = '#3a2218';
+    ctx.beginPath(); ctx.arc(-1, -71, 11.5, Math.PI * 1.05, Math.PI * 2.05); ctx.fill();
+    // eye + blush
+    ctx.fillStyle = '#140a1f'; ctx.beginPath(); ctx.arc(5, -68, 1.6, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,90,140,.45)'; ctx.beginPath(); ctx.arc(6, -63, 2.6, 0, 7); ctx.fill();
+    ctx.restore();
+    if (G.crown || G.lv === 2) emoji('👑', x, y - 92 * S, 20 * S);
+  }
+
+  function drawEntities(now) {
+    for (const it of G.items) emoji('💖', it.x, it.y + Math.sin(now / 200 + it.x / 50) * 4 * S, 30 * S);
+    for (const o of G.obs) {
+      if (o.kind === 'flag') emoji('🚩', o.x, GROUND - 22 * S, 40 * S);
+      else if (o.kind === 'tall') { emoji('🚩', o.x, GROUND - 22 * S, 40 * S); emoji('🚩', o.x, GROUND - 62 * S, 40 * S); }
+      else {
+        ctx.fillStyle = '#ff4646';
+        ctx.beginPath(); ctx.roundRect(o.x - o.w / 2, o.y, o.w, o.h, o.h / 2); ctx.fill();
+        ctx.fillStyle = '#fff6ea'; ctx.font = `800 ${15 * S}px Manrope, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('кринж', o.x, o.y + o.h / 2 + 1);
+      }
+    }
+    const B = G.boss;
+    if (B) {
+      const bob = Math.sin(B.t * 2.4) * 10 * S;
+      const sc = B.dead ? Math.max(0, 1 - B.dead) : 1;
+      if (sc > 0) {
+        ctx.save();
+        ctx.translate(B.x, B.y + bob); ctx.scale(sc, sc);
+        ctx.fillStyle = B.flash > 0 ? '#fff6ea' : '#ff4646';
+        ctx.beginPath();
+        for (let a = 0; a < 7; a += .35) { const r = (64 + Math.sin(a * 5 + B.t * 6) * 6) * S; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+        emoji('😈', B.x, B.y + bob, 64 * S * sc);
+        emoji('🚩', B.x + 40 * S * sc, B.y + bob - 58 * S * sc, 34 * S * sc, .3);
+      }
+    }
+    for (const s of G.shots) emoji('💖', s.x, s.y, 26 * S);
+    for (const p of G.parts) { ctx.globalAlpha = Math.max(0, p.life / p.max); ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * S, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    for (const p of G.pops) {
+      ctx.globalAlpha = Math.min(1, p.life * 1.5);
+      ctx.font = `800 ${16 * S}px Manrope, sans-serif`;
+      const w = ctx.measureText(p.text).width;
+      const x = Math.min(p.x, W - w - 22);
+      ctx.fillStyle = p.red ? 'rgba(255,70,70,.92)' : 'rgba(20,10,31,.82)';
+      ctx.beginPath(); ctx.roundRect(x - 10, p.y - 20 * S, w + 20, 28 * S, 14 * S); ctx.fill();
+      ctx.fillStyle = p.red ? '#fff6ea' : '#c8ff2e';
+      ctx.fillText(p.text, x, p.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ---------- Loop ----------
+  let last = 0;
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+    if (G.state === 'play') update(dt);
+    else { for (const p of G.parts) { p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 300 * dt; } G.parts = G.parts.filter(p => p.life > 0); }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (G.shake > 0 && !reduced) ctx.translate((Math.random() - .5) * 10, (Math.random() - .5) * 8);
+    drawWorld(now);
+    if (G.state !== 'menu') drawEntities(now);
+    drawHeroine(now);
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Screens ----------
+  function screen(html, onGo) {
+    ov.innerHTML = `<div class="panel">${html}</div>`;
+    ov.hidden = false;
+    const b = ov.querySelector('.go');
+    if (b) { b.onclick = e => { e.stopPropagation(); onGo(); }; setTimeout(() => b.focus({ preventScroll: true }), 50); }
+  }
+  function levelIntro(i) {
+    G.state = 'menu'; G.lv = i; hud.hidden = true; G.obs = []; G.items = []; G.boss = null;
+    const [eb, title, text] = LEVELS[i].intro;
+    screen(`
+      <div class="eyebrow">${eb}</div>
+      <h1>${title}</h1>
+      <p>${text}</p>
+      ${i === 0 ? `<div class="keys"><b>👆</b><span>тап — стрибок</span><b>👆👆</b><span>тап у повітрі — ще вище</span><b>💖</b><span>лови — то компліменти</span><b>🚩</b><span>перестрибуй — то кринж</span></div>` : ''}
+      <button class="go">${i === 0 ? 'Погнали' : 'Далі'}</button>`, () => startLevel(i));
+  }
+  function levelDone() {
+    G.state = 'menu'; hud.hidden = true;
+    const [title, text] = LEVELS[G.lv].done;
+    screen(`
+      <div class="eyebrow">✓ лвл ${G.lv + 1} з 3</div>
+      <h2>${title}</h2>
+      <p>${text}</p>
+      <dl class="stats"><dt>компліментів зібрано</dt><dd>${G.hearts} 💖</dd><dt>життів лишилось</dt><dd>${'❤️'.repeat(G.lives)}</dd></dl>
+      <button class="go">Наступний лвл</button>`, () => levelIntro(G.lv + 1));
+  }
+  function fail() {
+    G.state = 'menu'; hud.hidden = true;
+    screen(`
+      <div class="eyebrow">йой</div>
+      <h2>Кринж наскочив</h2>
+      <p>Не біда. Навіть головні героїні падають — і встають ще файнішими. Ще раз?</p>
+      <button class="go">Ще раз цей лвл</button>`, () => startLevel(G.lv));
+  }
+  function victory() {
+    G.state = 'menu'; hud.hidden = true; G.crown = true;
+    for (let i = 0; i < 80; i++) G.parts.push({ x: Math.random() * W, y: -20, vx: (Math.random() - .5) * 120, vy: 100 + Math.random() * 300, life: 2.5, max: 2.5, r: 3 + Math.random() * 4, c: ['#c8ff2e', '#ff2e88', '#fff6ea', '#5b2cff'][i % 4] });
+    screen(`
+      <div class="crown">👑</div>
+      <div class="eyebrow">сезон 3 пройдено</div>
+      <h1>Кринж переможено</h1>
+      <p>Бос не витримав стільки правди про тебе. Компліменти — то зброя, і ти нею володієш ідеально.</p>
+      <dl class="stats">
+        <dt>компліментів зловлено</dt><dd>${G.totalHearts} 💖</dd>
+        <dt>кринжу перестрибнуто</dt><dd>${G.jumped} 🚩</dd>
+        <dt>пройдено</dt><dd>все Закарпаття</dd>
+        <dt>головна героїня</dt><dd>ти. як фурт</dd>
+      </dl>
+      <p>Ти файна, коли їдеш, коли падаєш і коли встаєш. Особливо коли встаєш.</p>
+      <div class="sign">${SIGNATURE}</div>
+      <button class="go">Пройти ще раз</button>`, () => { G.totalHearts = 0; G.jumped = 0; compIdx = 0; levelIntro(0); });
+  }
+
+  // ---------- Input ----------
+  addEventListener('pointerdown', e => { if (e.target.closest('button, .ov')) return; e.preventDefault(); jump(); }, { passive: false });
+  addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'ArrowUp') && G.state === 'play') { e.preventDefault(); jump(); } });
+  document.addEventListener('visibilitychange', () => { last = performance.now(); });
+
+  resize();
+  addEventListener('resize', resize);
+  levelIntro(0);
+  requestAnimationFrame(t => { last = t; frame(t); });
+})();
+</script>
+</body>
+</html>

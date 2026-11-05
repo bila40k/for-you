@@ -314,7 +314,7 @@
         </dl>
         <div class="sign">${SIGNATURE}</div>
       </div>
-      <p class="mid" style="text-align:center">сезон 3? 👀</p>
+      <a class="again" href="../3/" style="background:var(--lime);color:var(--ink);text-decoration:none;font-size:1.05rem">сезон 3 вже тут 👀 →</a>
       <button class="again" id="ag">переглянути ще раз</button>`,
       enter(s) {
         s.querySelector('#fc').textContent = memo.card || 'всі три';
@@ -369,7 +369,7 @@
   // Tap / hold
   let downAt = 0, downX = 0;
   $('#phone').addEventListener('pointerdown', e => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button, a')) return;
     downAt = performance.now(); downX = e.clientX; paused = true;
   });
   addEventListener('pointerup', e => {
