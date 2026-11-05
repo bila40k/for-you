@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0a1d">
+<title>Обсерваторія</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Onest:wght@400;600;800&family=Caveat:wght@600;700&display=swap">
+<style>
+  /* Сезон 5: квест-кімната. Обсерваторія на вершині Карпат, ніч.
+     Мета — запустити телескоп і знайти на небі сюрприз (стрілка в окулярі показує на Місяць; у фіналі окуляр піднімається, жеб ім'я було видно над карткою).
+     Ланцюжок: журнал → миска кота (104.7 FM) → радіо (Морзе 1402) → сейф (лінза)
+               килимок (ключ) → шафка (рибка) → кіт злазить → щиток (світло, карта проявляється)
+               лінза в телескоп + світло → небо → знайти серце біля Місяця → зорі складають ім'я.
+     Тексти — в <script>. Прогрес зберігається в браузері. */
+  :root {
+    --night: #0c0a1d;
+    --night2: #17132f;
+    --panel: #1f1a3d;
+    --line: rgba(255,255,255,.1);
+    --text: #f6f2ff;
+    --muted: rgba(246,242,255,.65);
+    --gold: #ffd36b;
+    --pink: #ff5fa2;
+    --cyan: #6ff0ff;
+    --uv: #b48cff;
+    --red: #ff6464;
+    --paper: #f6ecd6;
+    --display: "Russo One", "Arial Black", sans-serif;
+    --ui: "Onest", "Segoe UI", system-ui, sans-serif;
+    --hand: "Caveat", "Segoe Print", cursive;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--night); color: var(--text); font-family: var(--ui);
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  .game {
+    height: 100%; max-width: 520px; margin: 0 auto; display: flex; flex-direction: column;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+    gap: 8px;
+  }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .top .t { flex: 1; min-width: 0; }
+  .top b { display: block; font: 400 1rem var(--display); letter-spacing: .02em; }
+  .top span { font: 600 .78rem var(--ui); color: var(--muted); }
+  .roundbtn { width: 40px; height: 40px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); font-size: 1.05rem; flex: none; }
+
+  .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; }
+  .stage svg { width: 100%; height: 100%; max-width: 100%; display: block; }
+  .hs { cursor: pointer; }
+  .hs:focus { outline: none; }
+  .hs:focus-visible .hit { stroke: var(--gold); stroke-width: 2; }
+  .hit { fill: transparent; }
+  .mark { fill: var(--gold); opacity: .9; animation: pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; pointer-events: none; }
+  @keyframes pulse { 50% { opacity: .25; transform: scale(.6); } }
+  .shake { animation: shake .4s ease; transform-box: fill-box; transform-origin: center; }
+  @keyframes shake { 20%,60% { transform: translateX(-4px); } 40%,80% { transform: translateX(4px); } }
+  #dark { transition: opacity 1.4s ease; pointer-events: none; }
+  #uv { transition: opacity 1.6s ease .6s; }
+  #catG { transition: transform 1.2s cubic-bezier(.3,1.2,.5,1); }
+  #lensGlow { transition: opacity .8s; }
+  #cupDoor { transition: transform .5s ease; transform-box: fill-box; transform-origin: right center; }
+
+  .say {
+    min-height: 66px; padding: 11px 14px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line);
+    font: 600 .98rem/1.4 var(--ui);
+  }
+  .say.pop { animation: pop .3s ease; }
+  @keyframes pop { from { opacity: .3; transform: translateY(4px); } }
+  .inv { display: flex; align-items: center; gap: 8px; }
+  .inv small { font: 800 .68rem var(--ui); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; width: 54px; line-height: 1.1; }
+  .slot {
+    width: 52px; height: 52px; border-radius: 14px; background: var(--night2); border: 1.5px dashed var(--line);
+    display: grid; place-items: center; font-size: 1.6rem; transition: all .2s;
+  }
+  .slot.has { border-style: solid; border-color: rgba(255,211,107,.35); }
+  .slot.sel { border-color: var(--gold); background: rgba(255,211,107,.15); box-shadow: 0 0 16px rgba(255,211,107,.4); transform: translateY(-3px); }
+  .inv .tip { flex: 1; font: 600 .78rem/1.25 var(--ui); color: var(--muted); }
+
+  /* Modals */
+  .modal {
+    position: fixed; inset: 0; z-index: 20; background: rgba(6,4,16,.78);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    display: grid; place-items: center; overflow-y: auto;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  }
+  .box { width: min(100%, 420px); background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 18px; display: grid; gap: 12px; animation: pop .3s ease; }
+  .box h2 { margin: 0; font: 400 1.35rem var(--display); }
+  .box p { margin: 0; font: 600 .98rem/1.45 var(--ui); }
+  .close { justify-self: stretch; padding: 12px; border-radius: 14px; background: var(--night2); font: 800 .95rem var(--ui); }
+  .gold { background: var(--gold); color: var(--night); }
+
+  .journal { background: var(--paper); color: #33283f; border-radius: 16px; padding: 16px 18px; min-height: 230px; font: 600 1.38rem/1.3 var(--hand); }
+  .journal h4 { margin: 0 0 6px; font: 700 1.6rem var(--hand); color: #6a3fd1; }
+  .journal .morse { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 18px; font: 800 1rem/1.5 var(--ui); letter-spacing: .08em; }
+  .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pager button { padding: 10px 16px; border-radius: 12px; background: var(--night2); font: 800 .95rem var(--ui); }
+  .pager button:disabled { opacity: .3; }
+  .pager span { font: 600 .85rem var(--ui); color: var(--muted); }
+
+  .radio { background: linear-gradient(160deg, #c8693f, #8e3f22); border-radius: 20px; padding: 16px; display: grid; gap: 12px; box-shadow: inset 0 -6px 0 rgba(0,0,0,.2); }
+  .freq { background: #10140e; color: #9dff6b; border-radius: 10px; padding: 10px 14px; font: 400 2rem var(--display); text-align: center; letter-spacing: .04em; text-shadow: 0 0 10px rgba(157,255,107,.6); font-variant-numeric: tabular-nums; }
+  .freq small { font: 600 .8rem var(--ui); margin-left: 6px; }
+  .sig { display: flex; gap: 4px; align-items: flex-end; height: 22px; justify-content: center; }
+  .sig i { width: 8px; border-radius: 2px; background: rgba(0,0,0,.3); }
+  .sig i.on { background: #9dff6b; }
+  .tune { display: flex; align-items: center; gap: 8px; }
+  .tune button { width: 46px; height: 46px; border-radius: 50%; background: rgba(0,0,0,.25); font: 800 .9rem var(--ui); flex: none; }
+  .tune input { flex: 1; min-width: 0; accent-color: #9dff6b; height: 30px; }
+  .morseOut { min-height: 3em; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.3); font: 800 1.15rem/1.5 var(--ui); letter-spacing: .12em; text-align: center; color: var(--paper); word-break: break-word; }
+  .morseOut small { display: block; letter-spacing: 0; font: 600 .85rem/1.35 var(--ui); color: rgba(255,255,255,.75); margin-bottom: 4px; }
+
+  .dots { display: flex; gap: 12px; justify-content: center; }
+  .dots i { width: 40px; height: 48px; border-radius: 10px; background: #0f1220; display: grid; place-items: center; font: 400 1.5rem var(--display); font-style: normal; color: var(--cyan); }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .keypad button { height: 52px; border-radius: 12px; background: var(--night2); font: 800 1.3rem var(--ui); }
+  .keypad button:active { background: #2b2552; }
+
+  .chart { width: 100%; height: auto; border-radius: 16px; display: block; max-width: 100%; }
+
+  /* Sky view */
+  .sky { position: fixed; inset: 0; z-index: 30; background: #000; touch-action: none; }
+  .sky canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  .skyUi {
+    position: absolute; left: 0; right: 0; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
+    pointer-events: none; font: 600 .9rem/1.3 var(--ui); color: var(--muted);
+  }
+  .skyUi button { pointer-events: auto; }
+  .zoomBtn {
+    position: absolute; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 2;
+    padding: 15px 24px; border-radius: 999px; background: var(--gold); color: var(--night); font: 400 1.05rem var(--display);
+    box-shadow: 0 0 30px rgba(255,211,107,.6); animation: pop .3s ease; white-space: nowrap;
+  }
+  .final {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: 72%; overflow-y: auto;
+    padding: 0 max(14px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+  }
+  .cert {
+    max-width: 440px; margin: 0 auto; background: rgba(23,19,47,.88); border: 1px solid rgba(255,211,107,.4);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 24px; padding: 18px; display: grid; gap: 10px; animation: rise 1s cubic-bezier(.2,.9,.3,1) both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(30px); } }
+  .cert .k { font: 800 .7rem var(--ui); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .cert h2 { margin: 0; font: 400 1.6rem/1.1 var(--display); }
+  .cert dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font: 600 .88rem var(--ui); }
+  .cert dt { color: var(--muted); } .cert dd { margin: 0; font-weight: 800; }
+  .cert p { margin: 0; font: 600 .98rem/1.45 var(--ui); }
+  .cert .sign { font: 700 1.5rem var(--hand); color: var(--pink); }
+  .cert .row { display: flex; gap: 8px; }
+  .cert .row button { flex: 1; padding: 12px; border-radius: 14px; background: var(--night2); font: 800 .88rem var(--ui); }
+
+  /* Intro */
+  .intro { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; overflow-y: auto;
+    padding: calc(20px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+    background: radial-gradient(80% 60% at 50% 0%, #2a2160, transparent 70%), var(--night); }
+  .intro .in { width: min(100%, 420px); display: grid; gap: 14px; animation: rise .8s ease both; }
+  .intro .k { font: 800 .75rem var(--ui); letter-spacing: .16em; text-transform: uppercase; color: var(--gold); }
+  .intro h1 { margin: 0; font: 400 clamp(2.4rem, 12vw, 3.4rem)/1 var(--display); text-shadow: 0 0 30px rgba(111,240,255,.35); }
+  .intro p { margin: 0; font: 600 1.05rem/1.5 var(--ui); }
+  .intro .how { display: grid; gap: 6px; padding: 12px 14px; border-radius: 16px; background: var(--panel); font: 600 .92rem/1.4 var(--ui); color: var(--muted); }
+  .intro .go { padding: 16px; border-radius: 999px; background: var(--gold); color: var(--night); font: 400 1.1rem var(--display); box-shadow: 0 0 30px rgba(255,211,107,.35); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mark { animation: none; }
+    #catG, #dark, #uv, #cupDoor { transition: none; }
+    .box, .cert, .intro .in, .say.pop { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="game">
+  <div class="top">
+    <div class="t"><b>Обсерваторія</b><span id="goal">мета: запустити телескоп</span></div>
+    <button class="roundbtn" id="snd" aria-label="Звук">🔊</button>
+    <button class="roundbtn" id="hintBtn" aria-label="Підказка">💡</button>
+  </div>
+
+  <div class="stage">
+    <svg id="room" viewBox="0 0 360 560" preserveAspectRatio="xMidYMid meet" aria-label="Кімната обсерваторії">
+      <defs>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#231d4a"/><stop offset="1" stop-color="#151131"/></linearGradient>
+        <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f2763"/><stop offset="1" stop-color="#1d1842"/></linearGradient>
+        <radialGradient id="lampGlow"><stop offset="0" stop-color="#ffd36b" stop-opacity=".55"/><stop offset="1" stop-color="#ffd36b" stop-opacity="0"/></radialGradient>
+        <radialGradient id="lensG"><stop offset="0" stop-color="#6ff0ff" stop-opacity=".9"/><stop offset="1" stop-color="#6ff0ff" stop-opacity="0"/></radialGradient>
+        <clipPath id="slitClip"><rect x="150" y="18" width="60" height="150"/></clipPath>
+      </defs>
+      <rect width="360" height="560" fill="url(#wall)"/>
+      <!-- dome -->
+      <path d="M0 175 Q0 18 180 14 Q360 18 360 175 Z" fill="url(#dome)"/>
+      <g stroke="rgba(255,255,255,.07)" stroke-width="2" fill="none">
+        <path d="M60 175 Q70 50 180 16"/><path d="M300 175 Q290 50 180 16"/><path d="M0 120 Q180 80 360 120"/>
+      </g>
+      <g clip-path="url(#slitClip)">
+        <rect x="150" y="10" width="60" height="170" fill="#070616"/>
+        <g fill="#fff">
+          <circle cx="160" cy="40" r="1.2"/><circle cx="178" cy="60" r="1.6"/><circle cx="196" cy="34" r="1"/><circle cx="170" cy="96" r="1.1"/>
+          <circle cx="203" cy="80" r="1.5"/><circle cx="185" cy="128" r="1"/><circle cx="160" cy="150" r="1.3"/><circle cx="200" cy="140" r="1"/>
+        </g>
+      </g>
+      <rect x="146" y="14" width="4" height="162" fill="#3b3378"/><rect x="210" y="14" width="4" height="162" fill="#3b3378"/>
+      <rect x="0" y="172" width="360" height="6" fill="#3b3378"/>
+      <!-- floor -->
+      <rect y="472" width="360" height="88" fill="#2a2042"/>
+      <g stroke="rgba(0,0,0,.25)" stroke-width="2"><line x1="0" y1="500" x2="360" y2="500"/><line x1="0" y1="530" x2="360" y2="530"/><line x1="90" y1="472" x2="80" y2="560"/><line x1="200" y1="472" x2="205" y2="560"/><line x1="300" y1="472" x2="310" y2="560"/></g>
+
+      <!-- star chart -->
+      <g class="hs" data-id="chart" tabindex="0" role="button" aria-label="Карта неба">
+        <rect class="hit" x="12" y="184" width="108" height="132"/>
+        <rect x="18" y="190" width="96" height="120" rx="4" fill="#f6ecd6"/>
+        <rect x="18" y="190" width="96" height="16" fill="#e2d2ae"/>
+        <text x="66" y="202" text-anchor="middle" font-family="Onest, sans-serif" font-size="8" font-weight="800" fill="#5b4a2e">КАРТА НЕБА</text>
+        <g fill="#5b4a2e"><circle cx="34" cy="226" r="1.6"/><circle cx="52" cy="238" r="1.2"/><circle cx="70" cy="222" r="1.8"/><circle cx="94" cy="236" r="1.2"/><circle cx="40" cy="268" r="1.4"/><circle cx="62" cy="282" r="1.1"/><circle cx="88" cy="270" r="1.6"/><circle cx="100" cy="292" r="1.1"/><circle cx="30" cy="296" r="1"/></g>
+        <g id="uv" opacity="0">
+          <circle cx="92" cy="226" r="7" fill="none" stroke="#b48cff" stroke-width="1.5"/>
+          <path d="M70 262 C62 250 50 254 52 264 C54 274 70 282 70 290 C70 282 86 274 88 264 C90 254 78 250 70 262 Z" fill="none" stroke="#b48cff" stroke-width="2"/>
+          <line x1="76" y1="252" x2="88" y2="234" stroke="#b48cff" stroke-width="1" stroke-dasharray="2 2"/>
+        </g>
+      </g>
+
+      <!-- desk -->
+      <rect x="14" y="392" width="176" height="12" rx="3" fill="#6b4a3a"/>
+      <rect x="24" y="404" width="8" height="68" fill="#553a2d"/><rect x="172" y="404" width="8" height="68" fill="#553a2d"/>
+
+      <!-- radio -->
+      <g class="hs" data-id="radio" tabindex="0" role="button" aria-label="Радіо">
+        <rect class="hit" x="18" y="322" width="76" height="72"/>
+        <line x1="78" y1="350" x2="92" y2="324" stroke="#aaa" stroke-width="2"/>
+        <rect x="22" y="348" width="66" height="44" rx="7" fill="#c8693f"/>
+        <circle cx="42" cy="370" r="12" fill="#7a3a20"/><g stroke="#c8693f" stroke-width="1.5"><line x1="34" y1="366" x2="50" y2="366"/><line x1="34" y1="370" x2="50" y2="370"/><line x1="34" y1="374" x2="50" y2="374"/></g>
+        <circle cx="72" cy="364" r="7" fill="#f6ecd6"/><rect x="62" y="378" width="20" height="6" rx="2" fill="#10140e"/>
+      </g>
+
+      <!-- journal -->
+      <g class="hs" data-id="journal" tabindex="0" role="button" aria-label="Журнал спостережень">
+        <rect class="hit" x="94" y="364" width="66" height="32"/>
+        <g transform="rotate(-6 126 384)"><rect x="100" y="374" width="54" height="17" rx="2" fill="#6a3fd1"/><rect x="100" y="388" width="54" height="3" fill="#f6ecd6"/><text x="127" y="386" text-anchor="middle" font-family="Caveat, cursive" font-size="10" font-weight="700" fill="#f6ecd6">журнал</text></g>
+      </g>
+
+      <!-- lamp -->
+      <g class="hs" data-id="lamp" tabindex="0" role="button" aria-label="Лампа">
+        <rect class="hit" x="150" y="318" width="40" height="76"/>
+        <circle id="lampLight" cx="168" cy="360" r="70" fill="url(#lampGlow)"/>
+        <rect x="160" y="386" width="20" height="6" rx="2" fill="#333"/><line x1="170" y1="386" x2="164" y2="346" stroke="#555" stroke-width="3"/>
+        <path d="M152 344 L176 340 L172 328 L158 330 Z" fill="#ffd36b"/>
+      </g>
+
+      <!-- telescope -->
+      <g class="hs" data-id="telescope" tabindex="0" role="button" aria-label="Телескоп">
+        <rect class="hit" x="168" y="150" width="120" height="325"/>
+        <g stroke="#8b84b8" stroke-width="5" stroke-linecap="round"><line x1="226" y1="338" x2="196" y2="470"/><line x1="226" y1="338" x2="228" y2="472"/><line x1="226" y1="338" x2="258" y2="470"/></g>
+        <circle cx="226" cy="334" r="11" fill="#5c5590"/>
+        <g transform="translate(226 330) rotate(-62)">
+          <rect x="-34" y="-9" width="16" height="18" rx="3" fill="#3d376a"/>
+          <rect x="-20" y="-15" width="150" height="30" rx="9" fill="#e9e4ff"/>
+          <rect x="22" y="-16" width="14" height="32" rx="3" fill="#b5acef"/>
+          <rect x="126" y="-18" width="16" height="36" rx="4" fill="#5c5590"/>
+          <circle id="lensGlow" cx="142" cy="0" r="18" fill="url(#lensG)" opacity="0"/>
+        </g>
+      </g>
+
+      <!-- safe -->
+      <g class="hs" data-id="safe" tabindex="0" role="button" aria-label="Сейф">
+        <rect class="hit" x="256" y="208" width="90" height="86"/>
+        <rect x="262" y="214" width="78" height="72" rx="6" fill="#5d6577"/>
+        <rect x="268" y="220" width="66" height="60" rx="4" fill="#4a5162"/>
+        <circle cx="301" cy="250" r="15" fill="#2d3240"/><circle cx="301" cy="250" r="10" fill="#8a93a8"/>
+        <line x1="301" y1="250" x2="301" y2="242" stroke="#2d3240" stroke-width="2"/>
+        <rect x="324" y="242" width="6" height="18" rx="2" fill="#2d3240"/>
+        <g id="safeOpen" opacity="0"><rect x="262" y="214" width="78" height="72" rx="6" fill="#1a1d27"/><text x="301" y="256" text-anchor="middle" font-size="18">✨</text></g>
+      </g>
+
+      <!-- cupboard -->
+      <g class="hs" data-id="cupboard" tabindex="0" role="button" aria-label="Шафка">
+        <rect class="hit" x="250" y="354" width="104" height="120"/>
+        <rect x="255" y="360" width="94" height="112" rx="4" fill="#553a2d"/>
+        <rect x="261" y="366" width="82" height="100" fill="#2a1d17"/>
+        <rect x="261" y="414" width="82" height="4" fill="#553a2d"/>
+        <text x="282" y="408" font-size="16">☕</text><text x="312" y="458" font-size="14">📦</text>
+        <g id="fishShelf"><text x="288" y="458" font-size="18">🐟</text></g>
+        <g id="cupDoor"><rect x="261" y="366" width="82" height="100" fill="#6b4a3a"/><line x1="302" y1="366" x2="302" y2="466" stroke="#553a2d" stroke-width="2"/><circle cx="296" cy="418" r="3" fill="#ffd36b"/><circle cx="308" cy="418" r="3" fill="#ffd36b"/></g>
+      </g>
+
+      <!-- power box + switch -->
+      <g class="hs" data-id="power" tabindex="0" role="button" aria-label="Електрощиток">
+        <rect class="hit" x="164" y="420" width="64" height="56"/>
+        <rect x="170" y="440" width="52" height="32" rx="4" fill="#3d3d4a"/>
+        <text x="196" y="462" text-anchor="middle" font-size="14">⚡</text>
+        <rect id="lever" x="210" y="444" width="6" height="14" rx="2" fill="#ff6464"/>
+      </g>
+
+      <!-- cat on top of the power box -->
+      <g class="hs" data-id="cat" tabindex="0" role="button" aria-label="Кіт">
+        <g id="catG">
+          <rect class="hit" x="170" y="402" width="54" height="44"/>
+          <text x="197" y="444" text-anchor="middle" font-size="40">🐈‍⬛</text>
+          <text id="zzz" x="222" y="410" font-family="Onest, sans-serif" font-weight="800" font-size="11" fill="#b5acef">z z</text>
+        </g>
+      </g>
+
+      <!-- bowl -->
+      <g class="hs" data-id="bowl" tabindex="0" role="button" aria-label="Миска кота">
+        <rect class="hit" x="122" y="494" width="44" height="34"/>
+        <text x="144" y="522" text-anchor="middle" font-size="24">🥣</text>
+      </g>
+
+      <!-- doormat -->
+      <g class="hs" data-id="mat" tabindex="0" role="button" aria-label="Килимок">
+        <rect class="hit" x="14" y="512" width="104" height="34"/>
+        <rect x="20" y="518" width="92" height="22" rx="5" fill="#8a3b52"/>
+        <text x="66" y="533" text-anchor="middle" font-family="Onest, sans-serif" font-size="9" font-weight="800" fill="#f6ecd6" letter-spacing="2">ВІТАЮ</text>
+      </g>
+
+      <rect id="dark" width="360" height="560" fill="#05030f" opacity=".5"/>
+      <g id="marks"></g>
+    </svg>
+  </div>
+
+  <div class="say" id="say">Ти в обсерваторії на самій вершині. Тихо, холодно, зорі. Роздивися.</div>
+  <div class="inv"><small>кишеня</small><div class="slot" id="s0"></div><div class="slot" id="s1"></div><div class="slot" id="s2"></div><div class="tip" id="invTip">тицни річ, а потім — де її використати</div></div>
+</div>
+
+<div class="modal" id="modal" hidden></div>
+<div class="sky" id="sky" hidden></div>
+<div class="intro" id="intro">
+  <div class="in">
+    <div class="k">сезон 5</div>
+    <h1>Обсерваторія</h1>
+    <p>Вершина Карпат. Ніч, мінус два, небо — ги розсипаний цукор. Тут таємний фанат сховав свій найбільший сюрприз.</p>
+    <p>Сюрприз — на небі. Айбо телескоп не працює. Запусти його.</p>
+    <div class="how">
+      <span>👆 тицяй на предмети в кімнаті — ✦ показує, де ще не дивилася</span>
+      <span>🎒 знайдене падає в кишеню. тицни річ, а тоді — де її використати</span>
+      <span>💡 застрягла — підказка вгорі. 🔊 звук краще ввімкнути</span>
+    </div>
+    <button class="go" id="goIn">Зайти всередину</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ================== ТЕКСТИ ==================
+  const NAME = 'ЯНА';            // ім'я, яке складуть зорі
+  const SIGNATURE = 'той, хто на твоїй стороні 🖤';
+  const SAFE_CODE = '1402';
+  const FREQ = 104.7;
+  const JOURNAL = [
+    ['День 1', 'Виліз на гору. Налаштовую телескоп. Хочу знайти на небі щось таке ж файне, як вона. Поки не виходить — нема нічого такого.'],
+    ['День 7', 'Кіт знов спит на щитку з рубильником. Без рибки не рушит ся. Рибка в шафці, а ключ від шафки — там, де «ВІТАЮ».'],
+    ['День 12', 'Радіо ловит лем одну хвилю. Записав її на дні кошачої миски, жеб не забути. По тій хвилі передаю код від сейфа — азбукою Морзе. Бо я романтик 📻'],
+    ['Морзе (цифри)', null],
+    ['День 30', 'ЗНАЙШОВ. Не скажу, што то. Лінзу сховав у сейф, а на карті неба позначив місце невидимим чорнилом. Проявится, лем як буде світло.'],
+  ];
+  const MORSE = { 1: '•−−−−', 2: '••−−−', 3: '•••−−', 4: '••••−', 5: '•••••', 6: '−••••', 7: '−−•••', 8: '−−−••', 9: '−−−−•', 0: '−−−−−' };
+  const CAT_LINES = ['Мрр. Я тут сплю. На теплому.', 'Не рушу ся. Хіба за рибку 🐟', 'Ти файна, айбо я лінивий. Рибка — і поговоримо.', 'Мяу. Тото значит «ніт».'];
+  const FINAL_TEXT = 'Ти питала, хто я. Я — той, хто шукав на небі щось таке ж файне, як ти. Перебрав усі зорі над Карпатами. Не знайшов. Тому зібрав їх у твоє ім\'я.';
+  // ============================================
+
+  const $ = s => document.querySelector(s);
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const KEY = 'observatoria-v1';
+  const blank = { journal: false, bowl: false, radio: false, key: false, cup: false, cat: false, power: false, safe: false, lens: false, seen: {}, done: false, lamp: true };
+  let S = { ...blank };
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') S = Object.assign({ ...blank }, s); } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+  // ---------- Say / inventory ----------
+  const sayEl = $('#say');
+  function say(t) { sayEl.textContent = t; sayEl.classList.remove('pop'); void sayEl.offsetWidth; sayEl.classList.add('pop'); }
+  let selected = null;
+  function items() {
+    const a = [];
+    if (S.key && !S.cup) a.push(['key', '🗝️', 'ключ']);
+    if (S.cup && !S.cat) a.push(['fish', '🐟', 'рибка']);
+    if (S.safe && !S.lens) a.push(['lens', '🔍', 'лінза']);
+    return a;
+  }
+  function drawInv() {
+    const a = items();
+    if (selected && !a.find(x => x[0] === selected)) selected = null;
+    ['#s0', '#s1', '#s2'].forEach((id, i) => {
+      const el = $(id), it = a[i];
+      el.className = 'slot' + (it ? ' has' : '') + (it && it[0] === selected ? ' sel' : '');
+      el.textContent = it ? it[1] : '';
+      el.setAttribute('role', 'button'); el.tabIndex = it ? 0 : -1;
+      el.setAttribute('aria-label', it ? it[2] : 'порожньо');
+      el.onclick = () => {
+        if (!it) return;
+        selected = selected === it[0] ? null : it[0];
+        drawInv();
+        if (selected) say(`В руці: ${it[1]} ${it[2]}. Тепер тицни, де її використати.`);
+      };
+    });
+    $('#invTip').textContent = selected ? 'тепер тицни на предмет у кімнаті' : (a.length ? 'тицни річ, а потім — де її використати' : 'поки пусто');
+  }
+
+  // ---------- Room render ----------
+  const HOT = { chart: [66, 186], safe: [301, 210], radio: [56, 340], journal: [127, 366], telescope: [270, 190], cupboard: [302, 356], power: [196, 432], cat: [197, 400], bowl: [144, 494], mat: [66, 512] };
+  function drawRoom() {
+    $('#dark').setAttribute('opacity', S.power ? '0' : (S.lamp ? '.5' : '.68'));
+    $('#lampLight').setAttribute('opacity', S.lamp && !S.power ? '1' : (S.power ? '.4' : '0'));
+    $('#uv').setAttribute('opacity', S.power ? '1' : '0');
+    $('#lensGlow').setAttribute('opacity', S.lens ? '1' : '0');
+    $('#safeOpen').setAttribute('opacity', S.safe ? '1' : '0');
+    $('#cupDoor').style.transform = S.cup ? 'scaleX(.08)' : 'none';
+    $('#fishShelf').style.display = S.cup ? 'none' : '';
+    $('#catG').style.transform = S.cat ? 'translate(-128px, 76px)' : 'none';
+    $('#zzz').style.display = S.cat ? 'none' : '';
+    $('#lever').setAttribute('y', S.power ? '458' : '444');
+    $('#lever').setAttribute('fill', S.power ? '#7dff7d' : '#ff6464');
+    const m = $('#marks'); m.innerHTML = '';
+    for (const [id, [x, y]] of Object.entries(HOT)) {
+      if (S.seen[id]) continue;
+      if (id === 'power' && !S.cat) continue;
+      if (id === 'cat' && S.cat) continue;
+      m.insertAdjacentHTML('beforeend', `<text class="mark" x="${x}" y="${y}" text-anchor="middle" font-size="12">✦</text>`);
+    }
+    $('#goal').textContent = S.done ? 'сезон 5 пройдено ✓' : goalText();
+    drawInv();
+  }
+  function goalText() {
+    if (S.lens && S.power) return 'мета: телескоп готовий — дивись у нього!';
+    const parts = [];
+    parts.push(S.lens ? '🔍 ✓' : '🔍 лінза');
+    parts.push(S.power ? '⚡ ✓' : '⚡ світло');
+    return 'мета: запустити телескоп · ' + parts.join(' · ');
+  }
+  function wiggle(id) {
+    const g = document.querySelector(`.hs[data-id="${id}"]`);
+    g.classList.remove('shake'); void g.getBBox(); g.classList.add('shake');
+    navigator.vibrate?.(40);
+  }
+
+  // ---------- Interactions ----------
+  const ACT = {
+    journal() { S.journal = true; openJournal(); },
+    bowl() {
+      S.bowl = true;
+      say(`Кошача миска. Пуста — кіт уже все з'їв. На дні фломастером: «${FREQ.toFixed(1)} FM».`);
+    },
+    mat() {
+      if (S.key) return say('Килимок «ВІТАЮ». Під ним уже нічого. Айбо вітає він лем тебе, точно.');
+      S.key = true; say('Підняла килимок «ВІТАЮ» — а там 🗝️ маленький ключ! Він у кишені.');
+      burstAt('mat', ['✨', '🗝️']);
+    },
+    cupboard() {
+      if (S.cup) return say('Шафка відкрита. Кава «Для безсонних ночей» ☕ і коробка. Видно, він тут довго сидів.');
+      if (selected === 'key') {
+        S.cup = true; selected = null;
+        say('Ключ підійшов! Шафка відкрилась: кава «Для безсонних ночей» ☕ і 🐟 рибка. Рибку — в кишеню.');
+        burstAt('cupboard', ['🐟', '✨']);
+        return;
+      }
+      wiggle('cupboard');
+      say(S.key ? 'Замкнено. У тебе є ключ — вибери 🗝️ в кишені, а тоді тицни на шафку.' : 'Шафка замкнена. Десь мусить бути ключ.');
+    },
+    cat() {
+      if (S.cat) return;
+      if (selected === 'fish') {
+        S.cat = true; selected = null;
+        say('Кіт понюхав, схрумав рибку й гордо пішов спати на килимок. А під ним — щиток з рубильником ⚡');
+        burstAt('cat', ['💖', '🐟']);
+        return;
+      }
+      wiggle('cat');
+      say('🐈‍⬛ ' + CAT_LINES[(S.catN = (S.catN || 0) + 1) % CAT_LINES.length]);
+    },
+    power() {
+      if (!S.cat) return ACT.cat();
+      if (S.power) return say('Світло є. Не вимикай — тут і так ти найяскравіша, айбо телескопу треба струм.');
+      S.power = true;
+      sfx.power();
+      say('Клац! Загуділо, засвітилося. І дивись — на карті неба проявилось щось фіолетове… 👀');
+      setTimeout(() => burstAt('chart', ['✨', '💜']), 1200);
+    },
+    chart() { openChart(); },
+    radio() { openRadio(); },
+    safe() { if (S.safe) return say('Сейф пустий. Лем записка на дверцятах: «дивися уважно — там ти».'); openSafe(); },
+    lamp() { S.lamp = !S.lamp; say(S.lamp ? 'Лампа світит. Затишно.' : 'Лампа вимкнена. Темно, ги в Синевирі вночі.'); },
+    telescope() {
+      if (!S.lens && selected === 'lens') {
+        S.lens = true; selected = null;
+        say(S.power ? 'Лінза клацнула на місце, і телескоп засвітився. Все готово — тицяй на нього!' : 'Лінза на місці ✓. Айбо телескоп мертвий — нема струму.');
+        burstAt('telescope', ['🔍', '✨']);
+        return;
+      }
+      if (!S.lens) { wiggle('telescope'); return say(S.safe ? 'Лінза в тебе в кишені. Вибери 🔍 і тицни на телескоп.' : 'Телескоп без лінзи. Ги без окулярів — ніц не видно.'); }
+      if (!S.power) { wiggle('telescope'); return say('Лінза є, айбо нема струму. Телескоп мовчит.'); }
+      openSky();
+    },
+  };
+  document.querySelectorAll('.hs').forEach(g => {
+    const run = () => {
+      const id = g.dataset.id;
+      S.seen[id] = true;
+      sfx.unlock();
+      ACT[id]();
+      save(); drawRoom();
+    };
+    g.addEventListener('click', run);
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); } });
+  });
+
+  // ---------- Modals ----------
+  const modal = $('#modal');
+  function openModal(html) {
+    modal.innerHTML = `<div class="box">${html}</div>`;
+    modal.hidden = false;
+    modal.onclick = e => { if (e.target === modal) closeModal(); };
+    modal.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModal);
+    return modal.firstElementChild;
+  }
+  function closeModal() { modal.hidden = true; modal.innerHTML = ''; radio.stop(); save(); drawRoom(); }
+
+  function openJournal() {
+    let p = 0;
+    const box = openModal(`<h2>Журнал спостережень</h2><div class="journal" id="jp"></div>
+      <div class="pager"><button id="jprev">‹</button><span id="jn"></span><button id="jnext">›</button></div>
+      <button class="close" data-close>Закрити</button>`);
+    const draw = () => {
+      const [h, t] = JOURNAL[p];
+      box.querySelector('#jp').innerHTML = `<h4>${h}</h4>` + (t ? `<div>${t}</div>` :
+        `<div class="morse">${Object.entries(MORSE).map(([d, m]) => `<span>${d} &nbsp;${m}</span>`).join('')}</div>`);
+      box.querySelector('#jn').textContent = `сторінка ${p + 1} з ${JOURNAL.length}`;
+      box.querySelector('#jprev').disabled = p === 0;
+      box.querySelector('#jnext').disabled = p === JOURNAL.length - 1;
+    };
+    box.querySelector('#jprev').onclick = () => { if (p > 0) { p--; draw(); } };
+    box.querySelector('#jnext').onclick = () => { if (p < JOURNAL.length - 1) { p++; draw(); } };
+    draw();
+    say('Журнал спостережень. Почерк його — нерівний, ги з холоду писав.');
+  }
+
+  function openChart() {
+    const box = openModal(`<h2>Карта неба</h2>
+      <svg class="chart" viewBox="0 0 300 220">
+        <rect width="300" height="220" fill="#f6ecd6"/>
+        <g fill="#5b4a2e">${Array.from({ length: 46 }, (_, i) => { const x = (i * 67) % 290 + 5, y = (i * 41) % 210 + 5; return `<circle cx="${x}" cy="${y}" r="${1 + (i % 3) * .6}"/>`; }).join('')}</g>
+        <g stroke="#5b4a2e" stroke-width="1" fill="none" opacity=".5"><path d="M30 160 L60 150 L85 162 L110 150 L130 170 L120 195 L95 190"/><path d="M180 40 L200 60 L215 45 L235 62 L255 42"/></g>
+        <text x="40" y="208" font-family="Onest, sans-serif" font-size="9" font-weight="800" fill="#5b4a2e">Ківш</text>
+        <text x="200" y="80" font-family="Onest, sans-serif" font-size="9" font-weight="800" fill="#5b4a2e">Кассіопея</text>
+        ${S.power ? `
+          <circle cx="232" cy="122" r="16" fill="none" stroke="#8a4dff" stroke-width="2"/>
+          <text x="232" y="150" text-anchor="middle" font-family="Caveat, cursive" font-size="15" font-weight="700" fill="#8a4dff">Місяць</text>
+          <path d="M180 112 C170 96 150 100 152 116 C154 132 180 144 180 156 C180 144 206 132 208 116 C210 100 190 96 180 112 Z" fill="rgba(180,140,255,.15)" stroke="#8a4dff" stroke-width="2.5"/>
+          <text x="160" y="192" text-anchor="middle" font-family="Caveat, cursive" font-size="17" font-weight="700" fill="#8a4dff">там. біля Місяця. серце ❤</text>` : ''}
+      </svg>
+      <p>${S.power ? 'Невидиме чорнило проявилось! Серце із зір — зліва від Місяця. Запам\'ятай.' : 'Звичайна карта неба: Ківш, Кассіопея… Хоча на папері ніби щось затерто. Треба більше світла.'}</p>
+      <button class="close" data-close>Закрити</button>`);
+    say(S.power ? 'На карті — фіолетове серце біля Місяця. Ото він і знайшов.' : 'Карта неба. Щось на ній є, айбо в такій темряві не видно.');
+  }
+
+  function openSafe() {
+    let code = '';
+    const box = openModal(`<h2>Сейф</h2><p>Чотири цифри. Він казав, што передає код по радіо.</p>
+      <div class="dots" id="sd"><i></i><i></i><i></i><i></i></div>
+      <div class="keypad" id="skp"></div>
+      <button class="close" data-close>Закрити</button>`);
+    const sd = [...box.querySelectorAll('#sd i')];
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '⌫', '0', ''].forEach(k => {
+      const b = document.createElement('button'); b.textContent = k;
+      if (!k) { b.disabled = true; b.style.visibility = 'hidden'; }
+      b.onclick = () => {
+        if (k === '⌫') code = code.slice(0, -1);
+        else if (code.length < 4) code += k;
+        sd.forEach((d, i) => d.textContent = code[i] || '');
+        if (code.length === 4) {
+          if (code === SAFE_CODE) {
+            S.safe = true; save();
+            sfx.ding();
+            box.innerHTML = `<h2>Сейф відкрито 🔓</h2><p>Всередині — 🔍 лінза від телескопа і записка: «дивися уважно — там ти».</p><p style="color:var(--muted)">14.02 — ну ти поняла, чого саме такий код 🙈</p><button class="close gold" data-close>Взяти лінзу</button>`;
+            box.querySelector('[data-close]').onclick = () => { closeModal(); say('🔍 Лінза в кишені. Тепер — у телескоп.'); burstAt('safe', ['🔍', '✨', '💖']); };
+          } else {
+            box.querySelector('#sd').classList.remove('shake'); void box.offsetWidth; box.querySelector('#sd').classList.add('shake');
+            navigator.vibrate?.(80);
+            setTimeout(() => { code = ''; sd.forEach(d => d.textContent = ''); }, 400);
+          }
+        }
+      };
+      box.querySelector('#skp').appendChild(b);
+    });
+    say('Сейф. Холодний, важкий. Код — чотири цифри.');
+  }
+
+  function openRadio() {
+    const box = openModal(`<h2>Радіо</h2>
+      <div class="radio">
+        <div class="freq"><span id="fv">88.0</span><small>FM</small></div>
+        <div class="sig" id="sig">${[6, 10, 14, 18, 22].map(h => `<i style="height:${h}px"></i>`).join('')}</div>
+        <div class="tune"><button id="fm" aria-label="Менше">−0.1</button><input id="fr" type="range" min="880" max="1080" step="1" value="${S.radio ? Math.round(FREQ * 10) : 880}" aria-label="Частота"><button id="fp" aria-label="Більше">+0.1</button></div>
+        <div class="morseOut" id="mo"><small>шшшш… лем шум</small></div>
+      </div>
+      <p style="color:var(--muted);font-size:.88rem">крути повзунок, а точніше — кнопками ±0.1</p>
+      <button class="close" data-close>Вимкнути й закрити</button>`);
+    const fr = box.querySelector('#fr'), fv = box.querySelector('#fv'), bars = [...box.querySelectorAll('#sig i')], mo = box.querySelector('#mo');
+    let locked = false;
+    const upd = () => {
+      const f = fr.value / 10;
+      fv.textContent = f.toFixed(1);
+      const d = Math.abs(f - FREQ);
+      const strength = d < .05 ? 5 : d < .3 ? 4 : d < .8 ? 3 : d < 2 ? 2 : d < 5 ? 1 : 0;
+      bars.forEach((b, i) => b.classList.toggle('on', i < strength));
+      radio.setNoise(strength);
+      if (strength === 5 && !locked) {
+        locked = true; S.radio = true; save();
+        const digits = [...SAFE_CODE];
+        mo.innerHTML = `<small>📻 «…Файне FM. Для найфайнішої слухачки — код. Повторюю…»</small><span id="ms"></span>`;
+        const ms = mo.querySelector('#ms');
+        radio.morse(digits, i => { ms.textContent = digits.slice(0, i + 1).map(d => MORSE[d]).join('  /  '); });
+      } else if (strength < 5 && locked) {
+        locked = false; radio.stopMorse();
+        mo.innerHTML = `<small>${strength >= 3 ? 'шшш… щось ловит, ближче…' : 'шшшш… лем шум'}</small>`;
+      } else if (!locked) mo.innerHTML = `<small>${strength >= 3 ? 'шшш… щось ловит, ближче…' : 'шшшш… лем шум'}</small>`;
+    };
+    fr.oninput = upd;
+    box.querySelector('#fm').onclick = () => { fr.value = +fr.value - 1; upd(); };
+    box.querySelector('#fp').onclick = () => { fr.value = +fr.value + 1; upd(); };
+    radio.start();
+    upd();
+    say('Старе радіо. Шипит. Треба зловити хвилю.');
+  }
+
+  function burstAt(id, set) {
+    const g = document.querySelector(`.hs[data-id="${id}"] .hit`);
+    if (!g) return;
+    const r = g.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 3, set, 12);
+  }
+
+  // ---------- Hints ----------
+  $('#hintBtn').onclick = () => {
+    let h;
+    if (!S.journal) h = 'Почни з журналу на столі — фіолетовий зошит.';
+    else if (!S.key) h = 'Журнал (стор. 2): ключ від шафки там, де «ВІТАЮ». Глянь під килимок.';
+    else if (!S.cup) h = 'Вибери 🗝️ у кишені внизу, а тоді тицни на шафку справа.';
+    else if (!S.cat) h = 'Вибери 🐟 у кишені й тицни на кота.';
+    else if (!S.power) h = 'Кіт звільнив щиток ⚡ — тицни на нього.';
+    else if (!S.bowl) h = 'Журнал (стор. 3): частота записана на дні кошачої миски 🥣.';
+    else if (!S.radio) h = `Відкрий радіо й налаштуй ${FREQ.toFixed(1)} FM — кнопками ±0.1 точніше.`;
+    else if (!S.safe) h = 'Розшифруй Морзе за таблицею в журналі (стор. 4). Ну або… код 1402 😉';
+    else if (!S.lens) h = 'Вибери 🔍 у кишені й тицни на телескоп.';
+    else h = 'Тицяй на телескоп! Шукай серце із зір зліва від Місяця.';
+    say('💡 ' + h);
+  };
+
+  // ---------- Audio ----------
+  let ac = null, master = null, muted = false;
+  const sfx = {
+    unlock() {
+      if (ac) { ac.resume?.(); return; }
+      try { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = muted ? 0 : .8; master.connect(ac.destination); } catch (e) { ac = null; }
+    },
+    tone(f, t, len, type = 'sine', vol = .2) {
+      if (!ac) return;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + len);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + len + .02);
+    },
+    ding() { if (!ac) return; const t = ac.currentTime; [784, 988, 1319].forEach((f, i) => this.tone(f, t + i * .09, .5, 'triangle', .18)); },
+    power() {
+      if (!ac) return; const t = ac.currentTime;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.setValueAtTime(40, t); o.frequency.exponentialRampToValueAtTime(110, t + 1.2);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.08, t + .3); g.gain.exponentialRampToValueAtTime(.001, t + 1.8);
+      o.connect(g); g.connect(master); o.start(t); o.stop(t + 1.9);
+      this.ding();
+    },
+    musicBox() {
+      if (!ac) return;
+      const notes = [76, 79, 84, 83, 79, 76, 74, 76, 79, 81, 79, 76, 72, 74, 76, 0, 76, 79, 84, 86, 84, 83, 81, 79, 77, 76, 74, 72];
+      let t = ac.currentTime + .2;
+      notes.forEach(n => { if (n) { const f = 440 * Math.pow(2, (n - 69) / 12); this.tone(f, t, 1.2, 'sine', .12); this.tone(f * 2, t, .5, 'sine', .03); } t += .32; });
+    },
+  };
+  const radio = {
+    src: null, ng: null, timer: 0,
+    start() {
+      sfx.unlock(); if (!ac) return;
+      const buf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      this.src = ac.createBufferSource(); this.src.buffer = buf; this.src.loop = true;
+      const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = .6;
+      this.ng = ac.createGain(); this.ng.gain.value = .12;
+      this.src.connect(bp); bp.connect(this.ng); this.ng.connect(master); this.src.start();
+    },
+    setNoise(strength) { if (this.ng) this.ng.gain.setTargetAtTime([.14, .12, .09, .06, .035, .008][strength], ac.currentTime, .1); },
+    morse(digits, onDigit) {
+      this.stopMorse();
+      const play = () => {
+        if (!ac) { digits.forEach((_, i) => onDigit(i)); return; }
+        const u = .1; let t = ac.currentTime + .2;
+        digits.forEach((dg, i) => {
+          const at = t;
+          setTimeout(() => onDigit(i), (at - ac.currentTime) * 1000);
+          for (const s of MORSE[dg]) { const len = s === '•' ? u : u * 3; sfx.tone(700, t, len, 'sine', .22); t += len + u; }
+          t += u * 4;
+        });
+        this.timer = setTimeout(play, (t - ac.currentTime + 1.2) * 1000);
+      };
+      play();
+    },
+    stopMorse() { clearTimeout(this.timer); },
+    stop() { this.stopMorse(); try { this.src?.stop(); } catch (e) {} this.src = null; this.ng = null; },
+  };
+  $('#snd').onclick = () => { muted = !muted; $('#snd').textContent = muted ? '🔇' : '🔊'; sfx.unlock(); if (master) master.gain.value = muted ? 0 : .8; };
+
+  // ---------- Sky / telescope ----------
+  function openSky() {
+    const sky = $('#sky');
+    sky.hidden = false;
+    sky.innerHTML = `<canvas id="sc"></canvas>
+      <div class="skyUi"><span id="skyTip">тягни небо пальцем 👆 шукай серце біля Місяця</span><button class="roundbtn" id="skyClose" aria-label="Закрити">✕</button></div>`;
+    const cv = sky.querySelector('#sc'), g = cv.getContext('2d');
+    let W, H, DPR, R;
+    const VW = 2600, VH = 1700;
+    const rnd = (a => () => (a = (a * 16807) % 2147483647) / 2147483647)(42);
+    const stars = Array.from({ length: 3800 }, () => ({ x: rnd() * VW, y: rnd() * VH, r: rnd() < .93 ? rnd() * 1.1 + .3 : rnd() * 1.6 + 1.2, tw: rnd() * 6, c: rnd() < .15 ? '#cfe0ff' : rnd() < .1 ? '#ffe2b8' : '#ffffff' }));
+    const moon = { x: 1980, y: 520, r: 46 };
+    const heartC = { x: 1780, y: 560 };
+    const heart = [];
+    for (let i = 0; i < 14; i++) {
+      const t = i / 14 * Math.PI * 2;
+      heart.push({ x: heartC.x + 16 * Math.pow(Math.sin(t), 3) * 5.2, y: heartC.y - (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) * 5.2, r: 2.4 });
+    }
+    const ladle = [[420, 1050], [520, 1020], [610, 1060], [700, 1030], [760, 1110], [700, 1180], [610, 1150]];
+    const cass = [[1120, 300], [1190, 360], [1250, 300], [1320, 370], [1390, 300]];
+    let cam = { x: 700, y: 1100 }, vel = { x: 0, y: 0 }, drag = null, phase = 'look', t0 = 0, namePts = [], flyers = [];
+
+    function resize() {
+      DPR = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+      cv.width = W * DPR; cv.height = H * DPR; R = Math.min(W, H) * .41;
+    }
+    resize(); addEventListener('resize', resize);
+
+    cv.addEventListener('pointerdown', e => { if (phase !== 'look') return; drag = { x: e.clientX, y: e.clientY }; vel = { x: 0, y: 0 }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      cam.x -= dx; cam.y -= dy; vel = { x: -dx, y: -dy }; drag = { x: e.clientX, y: e.clientY };
+    });
+    const up = () => { drag = null; };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    sky.querySelector('#skyClose').onclick = () => { phase = 'closed'; sky.hidden = true; sky.innerHTML = ''; removeEventListener('resize', resize); drawRoom(); };
+
+    let btn = null;
+    function showBtn(on) {
+      if (on && !btn) {
+        btn = document.createElement('button'); btn.className = 'zoomBtn'; btn.textContent = '🔭 Наблизити';
+        btn.onclick = startZoom; sky.appendChild(btn);
+        sky.querySelector('#skyTip').textContent = 'ой. там щось є…';
+      } else if (!on && btn) { btn.remove(); btn = null; sky.querySelector('#skyTip').textContent = 'тягни небо пальцем 👆 шукай серце біля Місяця'; }
+    }
+
+    function buildName() {
+      const oc = document.createElement('canvas'); oc.width = 700; oc.height = 260;
+      const og = oc.getContext('2d');
+      og.fillStyle = '#fff'; og.font = '900 200px "Russo One", "Arial Black", sans-serif'; og.textAlign = 'center'; og.textBaseline = 'middle';
+      og.fillText(NAME, 350, 135);
+      const d = og.getImageData(0, 0, 700, 260).data, pts = [];
+      for (let y = 0; y < 260; y += 9) for (let x = 0; x < 700; x += 9) if (d[(y * 700 + x) * 4 + 3] > 140) pts.push({ x: x - 350, y: y - 135 });
+      return pts;
+    }
+    function startZoom() {
+      if (phase !== 'look') return;
+      phase = 'zoom'; t0 = performance.now(); showBtn(false);
+      sky.querySelector('#skyTip').textContent = '';
+      namePts = buildName();
+      const scale = Math.min((R * 1.7) / 700, 1.2);
+      const pool = [...heart, ...stars.filter(s => Math.abs(s.x - cam.x) < W && Math.abs(s.y - cam.y) < H).slice(0, 400)];
+      flyers = namePts.map((p, i) => {
+        const s = pool[i % pool.length];
+        return { sx: s.x - cam.x, sy: s.y - cam.y, tx: p.x * scale, ty: p.y * scale, r: 1.4 + (i % 4) * .35, d: rnd() * .5 };
+      });
+      S.done = true; save();
+      sfx.musicBox();
+      setTimeout(showFinal, reduced ? 600 : 4200);
+    }
+    function showFinal() {
+      if (phase === 'closed') return;
+      const f = document.createElement('div'); f.className = 'final';
+      f.innerHTML = `<div class="cert">
+        <div class="k">каталог фаната · запис №1</div>
+        <h2>Сузір'я «${NAME[0] + NAME.slice(1).toLowerCase()}»</h2>
+        <dl><dt>де</dt><dd>біля Місяця, над Карпатами</dd><dt>яскравість</dt><dd>засліплює</dd><dt>видно</dt><dd>фурт. навіть удень, кедь знаєш, куди дивитися</dd></dl>
+        <p>${FINAL_TEXT}</p>
+        <div class="sign">— ${SIGNATURE}</div>
+        <div class="row"><button id="again">пройти ще раз</button><button id="room">назад у кімнату</button></div>
+      </div>`;
+      sky.appendChild(f);
+      f.querySelector('#room').onclick = () => sky.querySelector('#skyClose').click();
+      f.querySelector('#again').onclick = () => { S = { ...blank, seen: {} }; save(); selected = null; sky.querySelector('#skyClose').click(); say('Все заново. Кімната та сама, ти — та сама файна.'); };
+      let n = 0; const fire = setInterval(() => { burst(Math.random() * innerWidth, innerHeight * .3 * Math.random(), ['✨', '⭐', '💫'], 4); if (++n > (reduced ? 2 : 12)) clearInterval(fire); }, 160);
+    }
+
+    function frame(now) {
+      if (phase === 'closed') return;
+      g.setTransform(DPR, 0, 0, DPR, 0, 0);
+      g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+      const zt = phase === 'zoom' ? Math.min((now - t0) / (reduced ? 300 : 3200), 1) : 0;
+      const ease = zt < .5 ? 2 * zt * zt : 1 - Math.pow(-2 * zt + 2, 2) / 2;
+      const cx = W / 2, cy = H / 2 - (W < H ? ease * H * .2 : ease * H * .12);
+      if (!drag && phase === 'look') { cam.x += vel.x; cam.y += vel.y; vel.x *= .92; vel.y *= .92; }
+      cam.x = Math.max(0, Math.min(VW, cam.x)); cam.y = Math.max(0, Math.min(VH, cam.y));
+
+      g.save();
+      g.beginPath(); g.arc(cx, cy, R, 0, 7); g.clip();
+      const bg = g.createRadialGradient(cx, cy, 0, cx, cy, R); bg.addColorStop(0, '#0b0d26'); bg.addColorStop(1, '#03030a');
+      g.fillStyle = bg; g.fillRect(cx - R, cy - R, R * 2, R * 2);
+
+      const fade = 1 - Math.min(zt * 1.6, 1);
+      // milky way
+      g.globalAlpha = .18 * (fade || .4);
+      for (let i = 0; i < 6; i++) { const mx = 300 + i * 420 - cam.x + cx, my = 1300 - i * 170 - cam.y + cy; const mw = g.createRadialGradient(mx, my, 0, mx, my, 260); mw.addColorStop(0, '#8fa6ff'); mw.addColorStop(1, 'rgba(143,166,255,0)'); g.fillStyle = mw; g.fillRect(mx - 260, my - 260, 520, 520); }
+      g.globalAlpha = 1;
+      // stars
+      for (const s of stars) {
+        const x = s.x - cam.x + cx, y = s.y - cam.y + cy;
+        if (x < cx - R - 5 || x > cx + R + 5 || y < cy - R - 5 || y > cy + R + 5) continue;
+        g.globalAlpha = (.55 + Math.sin(now / 600 + s.tw) * .35) * (phase === 'zoom' ? fade * .7 + .15 : 1);
+        g.fillStyle = s.c; g.beginPath(); g.arc(x, y, s.r, 0, 7); g.fill();
+      }
+      g.globalAlpha = 1;
+      // decoy constellations (faint)
+      if (phase === 'look') for (const shape of [ladle, cass]) {
+        g.fillStyle = '#fff';
+        for (const [sx, sy] of shape) { g.beginPath(); g.arc(sx - cam.x + cx, sy - cam.y + cy, 2.3, 0, 7); g.fill(); }
+      }
+      // moon
+      const mx = moon.x - cam.x + cx, my = moon.y - cam.y + cy;
+      g.globalAlpha = phase === 'zoom' ? fade : 1;
+      const mg = g.createRadialGradient(mx, my, 0, mx, my, moon.r * 3); mg.addColorStop(0, 'rgba(255,245,210,.35)'); mg.addColorStop(1, 'rgba(255,245,210,0)');
+      g.fillStyle = mg; g.fillRect(mx - moon.r * 3, my - moon.r * 3, moon.r * 6, moon.r * 6);
+      g.fillStyle = '#fff4d0'; g.beginPath(); g.arc(mx, my, moon.r, 0, 7); g.fill();
+      g.fillStyle = 'rgba(200,190,160,.5)'; [[-14, -10, 9], [12, 8, 7], [-4, 18, 5]].forEach(([a, b, r]) => { g.beginPath(); g.arc(mx + a, my + b, r, 0, 7); g.fill(); });
+      g.globalAlpha = 1;
+      // heart
+      if (phase === 'look') {
+        for (const h of heart) {
+          const x = h.x - cam.x + cx, y = h.y - cam.y + cy;
+          g.fillStyle = '#ffe9f3'; g.shadowColor = '#ff5fa2'; g.shadowBlur = 10;
+          g.beginPath(); g.arc(x, y, h.r + Math.sin(now / 400 + h.x) * .5, 0, 7); g.fill();
+        }
+        g.shadowBlur = 0;
+        const dist = Math.hypot(heartC.x - cam.x, heartC.y - cam.y);
+        showBtn(dist < R * .45);
+      }
+      // name formation
+      if (phase === 'zoom') {
+        for (const f of flyers) {
+          const k = Math.max(0, Math.min(1, (ease - f.d * .3) / .7));
+          const x = cx + f.sx * (1 - k) + f.tx * k, y = cy + f.sy * (1 - k) + f.ty * k;
+          g.fillStyle = k > .95 ? '#ffe9a8' : '#ffffff';
+          g.shadowColor = '#ffd36b'; g.shadowBlur = k * 12;
+          g.beginPath(); g.arc(x, y, f.r * (1 + k * .4) + (k === 1 ? Math.sin(now / 300 + f.tx) * .4 : 0), 0, 7); g.fill();
+        }
+        g.shadowBlur = 0;
+        if (zt === 1) {
+          g.strokeStyle = 'rgba(255,211,107,.12)'; g.lineWidth = 1;
+          for (let i = 0; i < flyers.length - 1; i += 3) { const a = flyers[i], b = flyers[i + 1]; if (Math.hypot(a.tx - b.tx, a.ty - b.ty) < 20) { g.beginPath(); g.moveTo(cx + a.tx, cy + a.ty); g.lineTo(cx + b.tx, cy + b.ty); g.stroke(); } }
+        }
+      }
+      g.restore();
+      // eyepiece ring + crosshair
+      g.strokeStyle = 'rgba(111,240,255,.35)'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, R, 0, 7); g.stroke();
+      if (phase === 'look') {
+        const ddx = moon.x - cam.x, ddy = moon.y - cam.y, dd = Math.hypot(ddx, ddy);
+        if (dd > R * 1.1) {
+          const ax = cx + ddx / dd * (R + 18), ay = cy + ddy / dd * (R + 18), ang = Math.atan2(ddy, ddx);
+          g.save(); g.translate(ax, ay); g.rotate(ang);
+          g.globalAlpha = .55 + Math.sin(now / 300) * .3; g.fillStyle = '#fff4d0';
+          g.beginPath(); g.moveTo(10, 0); g.lineTo(-6, -7); g.lineTo(-6, 7); g.closePath(); g.fill();
+          g.restore(); g.globalAlpha = 1;
+          g.font = '600 12px Onest, sans-serif'; g.fillStyle = 'rgba(255,244,208,.8)'; g.textAlign = 'center';
+          g.fillText('🌙', ax - ddx / dd * 22, ay - ddy / dd * 22 + 4);
+        }
+        g.strokeStyle = 'rgba(111,240,255,.25)'; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(cx - 18, cy); g.lineTo(cx - 6, cy); g.moveTo(cx + 6, cy); g.lineTo(cx + 18, cy); g.moveTo(cx, cy - 18); g.lineTo(cx, cy - 6); g.moveTo(cx, cy + 6); g.lineTo(cx, cy + 18); g.stroke();
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    say('Дивишся в телескоп… Небо — ги розсипаний цукор.');
+  }
+
+  // ---------- FX (emoji bursts) ----------
+  const fx = document.createElement('canvas');
+  fx.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50';
+  document.body.appendChild(fx);
+  const ctx = fx.getContext('2d');
+  let FDPR;
+  const sprites = new Map(), bits = [];
+  function sprite(ch) {
+    let s = sprites.get(ch); if (s) return s;
+    s = document.createElement('canvas'); s.width = s.height = 64 * FDPR;
+    const g = s.getContext('2d');
+    g.font = `${51 * FDPR}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ch, s.width / 2, s.height / 2 + 3 * FDPR);
+    sprites.set(ch, s); return s;
+  }
+  function burst(x, y, set, n = 8) {
+    if (reduced) n = Math.min(n, 3);
+    for (let i = 0; i < n; i++) {
+      const ch = set[(Math.random() * set.length) | 0], a = Math.random() * Math.PI * 2, sp = 2 + Math.random() * 4;
+      bits.push({ img: sprite(ch), ch, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 3, rot: 0, vr: (Math.random() - .5) * .2, size: 16 + Math.random() * 16, life: 70 });
+    }
+  }
+  let dirty = false;
+  function loop() {
+    if (bits.length || dirty) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, fx.width, fx.height); dirty = bits.length > 0; }
+    let alive = 0;
+    for (const b of bits) {
+      if (--b.life <= 0) continue; bits[alive++] = b;
+      b.vy += .25; b.x += b.vx; b.y += b.vy; b.rot += b.vr;
+      const c = Math.cos(b.rot) * FDPR, s = Math.sin(b.rot) * FDPR, r = b.size / 2;
+      ctx.setTransform(c, s, -s, c, b.x * FDPR, b.y * FDPR); ctx.globalAlpha = b.life < 25 ? b.life / 25 : 1;
+      ctx.drawImage(b.img, -r, -r, b.size, b.size);
+    }
+    bits.length = alive; ctx.globalAlpha = 1;
+    requestAnimationFrame(loop);
+  }
+  function fxResize() { FDPR = Math.min(devicePixelRatio || 1, 2); fx.width = innerWidth * FDPR; fx.height = innerHeight * FDPR; sprites.clear(); for (const b of bits) b.img = sprite(b.ch); }
+  fxResize(); addEventListener('resize', fxResize); requestAnimationFrame(loop);
+
+  // ---------- Start ----------
+  const anySeen = Object.keys(S.seen).length > 0;
+  if (anySeen) { $('#intro').hidden = true; say(S.done ? 'Ти вже знайшла сузір\'я. Можеш глянути в телескоп ще раз 🔭' : 'Ти повернулась. Все лежит, де лишила.'); }
+  $('#goIn').onclick = () => { $('#intro').hidden = true; sfx.unlock(); };
+  drawRoom();
+})();
+</script>
+</body>
+</html>
