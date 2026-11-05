@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Файна справа</title>
+<meta name="theme-color" content="#0c0d0f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&family=PT+Mono&family=Marck+Script&family=Oswald:wght@500;700&display=swap">
+<style>
+:root{
+  --bg:#0c0d0f; --bg2:#15171a; --ink:#e8e4da; --mute:#8d8c88; --line:#2a2c30;
+  --paper:#e6e1d4; --paper2:#d6d0bf; --dark:#1a1a1c; --gray:#6b6a66;
+  --pink:#ff3d7f; --pinkInk:#c8124f; --pinkSoft:#ff9cc0;
+  --f-title:'Playfair Display',Georgia,'Times New Roman',serif;
+  --f-mono:'PT Mono',ui-monospace,Consolas,monospace;
+  --f-hand:'Marck Script','Segoe Script',cursive;
+  --f-cond:'Oswald','Arial Narrow',Arial,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--f-mono);overflow:hidden;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;cursor:pointer}
+[hidden]{display:none!important}
+#bloomBg{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity 4s ease;background:linear-gradient(180deg,#1f1230 0%,#5b2350 38%,#c4506a 70%,#f2a37a 100%)}
+body.bloom #bloomBg{opacity:1}
+#rain{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at 50% 40%,transparent 35%,rgba(0,0,0,.78));transition:opacity 4s}
+body.bloom .vignette{opacity:.35}
+.grain{position:fixed;inset:-50%;z-index:90;pointer-events:none;opacity:.08;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");animation:grain .6s steps(4) infinite}
+@keyframes grain{0%{transform:translate(0,0)}25%{transform:translate(-4%,3%)}50%{transform:translate(3%,-4%)}75%{transform:translate(-2%,-2%)}100%{transform:translate(2%,3%)}}
+#flash{position:fixed;inset:0;background:#e3e9ff;opacity:0;pointer-events:none;z-index:3}
+.emo{filter:grayscale(1) contrast(1.05);transition:filter 3s}
+body.bloom .emo{filter:none}
+
+/* top bar */
+.top{position:fixed;top:0;left:0;right:0;z-index:40;display:flex;justify-content:space-between;align-items:center;
+  padding:calc(env(safe-area-inset-top,0px) + 10px) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,rgba(12,13,15,.95),rgba(12,13,15,0))}
+body.bloom .top{background:linear-gradient(180deg,rgba(31,18,48,.92),rgba(31,18,48,0))}
+.logo{font:900 italic 15px/0.95 var(--f-title);letter-spacing:.02em}
+.logo b{color:var(--pink);font-weight:900}
+.tb{display:flex;gap:8px}
+.tb button{width:40px;height:40px;border-radius:50%;border:1px solid #3a3c40;background:rgba(20,21,24,.8);font-size:18px;display:grid;place-items:center}
+
+/* screens */
+.screen{position:fixed;inset:0;z-index:10;overflow-y:auto;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top,0px) + 64px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(16px,env(safe-area-inset-left,0px))}
+.screen.center{justify-content:center;align-items:center;text-align:center;padding-top:calc(env(safe-area-inset-top,0px) + 24px)}
+.big{font-family:var(--f-cond);font-weight:500;text-transform:uppercase;letter-spacing:.14em;font-size:16px;padding:15px 26px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:2px;transition:transform .15s,opacity .3s}
+.big:active{transform:scale(.97)}
+.big.pink{background:var(--pink);border-color:var(--pink);color:#fff;box-shadow:0 0 28px rgba(255,61,127,.35)}
+.big:disabled{opacity:.35;cursor:default}
+
+/* title */
+.tt-kicker{font:500 12px var(--f-cond);letter-spacing:.32em;text-transform:uppercase;color:var(--mute)}
+.tt{margin:14px 0 6px;font:900 clamp(58px,19vw,104px)/.86 var(--f-title);letter-spacing:-.02em;text-wrap:balance}
+.tt em{color:var(--pink);font-style:italic;text-shadow:0 0 30px rgba(255,61,127,.45)}
+.tt-line{width:70px;height:2px;background:var(--pink);margin:16px auto}
+.tt-sub{max-width:30ch;font-size:14px;line-height:1.55;color:#c9c5bb;margin:0 0 26px}
+.tt-note{font-size:12px;color:var(--mute);margin-top:18px}
+.tt-cast{margin-top:30px;font:500 11px/1.8 var(--f-cond);letter-spacing:.2em;text-transform:uppercase;color:#5d5c58}
+
+/* intro */
+#intro{justify-content:center}
+.typed{max-width:520px;margin:0 auto;width:100%}
+.typed p{font-size:15.5px;line-height:1.6;margin:0 0 14px;min-height:1.6em}
+.typed p.q{color:var(--pinkSoft);padding-left:14px;border-left:2px solid var(--pink)}
+.typed p.me{font-family:var(--f-title);font-style:italic;font-size:21px;font-weight:700}
+.cur{display:inline-block;width:.55em;height:1.05em;background:var(--ink);vertical-align:-2px;animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+#takeCase{align-self:center;margin-top:10px}
+.skip{text-align:center;font-size:11px;color:#5f5e5a;margin-top:auto;padding-top:18px}
+
+/* board */
+.casehead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 auto 12px;width:100%;max-width:520px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.casehead span{font:700 13px var(--f-cond);letter-spacing:.2em}
+.casehead i{font:700 italic 15px var(--f-title);color:var(--pinkSoft);white-space:nowrap}
+.wall{position:relative;display:grid;grid-template-columns:1fr 1fr;grid-template-areas:"a b" "c c" "d e";gap:18px 14px;width:100%;max-width:520px;margin:0 auto;padding:6px 2px}
+#strings{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:4;overflow:visible}
+.str{fill:none;stroke:var(--pink);stroke-width:2.2;stroke-linecap:round;filter:drop-shadow(0 3px 2px rgba(0,0,0,.7))}
+.str.anim{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 1.3s ease forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.ev{position:relative;border:0;padding:9px 9px 10px;background:var(--paper);color:var(--dark);text-align:center;border-radius:2px;
+  box-shadow:0 10px 22px rgba(0,0,0,.55),0 2px 0 rgba(0,0,0,.2);transform:rotate(var(--r,0deg));transition:transform .2s}
+.ev:active{transform:rotate(var(--r,0deg)) scale(.96)}
+.ev .ph{position:relative;height:78px;background:#1c1d20;display:grid;place-items:center;overflow:hidden}
+.ev .ph .emo{font-size:38px}
+.ev .lbl{position:absolute;left:6px;top:5px;font:500 9px var(--f-cond);letter-spacing:.2em;color:#8a8a86}
+.ev .cap{font:21px/1.05 var(--f-hand);margin-top:7px;min-height:1.1em}
+.ev.locked{opacity:.62}
+.ev.locked .cap{font-size:17px;color:var(--gray)}
+.ev .stmp{position:absolute;right:6px;bottom:8px;font:700 12px var(--f-cond);letter-spacing:.14em;color:var(--pink);border:2px solid var(--pink);padding:2px 6px;transform:rotate(-12deg);background:rgba(28,29,32,.6)}
+.ev.new .ph::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2px var(--pink);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.2}}
+.pin{position:absolute;left:50%;top:-6px;width:13px;height:13px;margin-left:-6.5px;border-radius:50%;z-index:5;
+  background:radial-gradient(circle at 35% 35%,#ffd0e0,var(--pink) 45%,#7a0f35);box-shadow:0 2px 3px rgba(0,0,0,.6)}
+.anc{position:absolute;width:10px;height:10px;border-radius:50%;z-index:5;background:radial-gradient(circle at 35% 35%,#ffd0e0,var(--pink) 45%,#7a0f35);box-shadow:0 2px 3px rgba(0,0,0,.6);opacity:0;transition:opacity .4s}
+.ev.done .anc{opacity:1}
+.ev[data-k="w"] .anc{left:5px;bottom:5px}
+.ev[data-k="cam"] .anc{right:5px;bottom:5px}
+.ev[data-k="shred"] .anc{left:5px;top:5px}
+.ev[data-k="cipher"] .anc{right:5px;top:5px}
+#susPin2{top:auto;bottom:-7px}
+.sus{grid-area:c;position:relative;display:flex;gap:12px;align-items:stretch;background:var(--paper2);color:var(--dark);padding:12px;border-radius:2px;box-shadow:0 12px 26px rgba(0,0,0,.6);transform:rotate(-.6deg)}
+.sus .pin{top:-7px}
+.sus .face{flex:0 0 86px;background:#16171a;position:relative;display:grid;place-items:center;overflow:hidden}
+.sus .face svg{width:100%;height:100%}
+.sus .face .q{position:absolute;font:900 46px var(--f-title);color:var(--pink);text-shadow:0 0 18px rgba(255,61,127,.6)}
+.sus .info{flex:1;min-width:0}
+.sus h3{margin:0 0 6px;font:700 12px var(--f-cond);letter-spacing:.24em}
+.sus ul{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.sus li{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;border-bottom:1px dashed rgba(0,0,0,.18);padding-bottom:2px}
+.sus li span{color:#5b5953;text-transform:uppercase;letter-spacing:.06em;font-size:10.5px;padding-top:3px}
+.sus li b{font:400 17px/1.1 var(--f-hand);color:#9a978f;text-align:right}
+.sus li.on b{color:var(--pinkInk)}
+.ev[data-k="w"]{grid-area:a;--r:-2.2deg}
+.ev[data-k="cam"]{grid-area:b;--r:1.8deg}
+.ev[data-k="shred"]{grid-area:d;--r:1.4deg}
+.ev[data-k="cipher"]{grid-area:e;--r:-1.6deg}
+.narr{display:flex;gap:10px;align-items:flex-start;width:100%;max-width:520px;margin:16px auto 12px;padding:12px;border:1px solid var(--line);background:rgba(18,19,22,.85)}
+.narr .emo{font-size:26px;line-height:1}
+.narr p{margin:0;font-size:13.5px;line-height:1.5;min-height:3em}
+#toLineup{align-self:center;width:100%;max-width:520px}
+
+/* sheets */
+.sheet{position:fixed;inset:0;z-index:30;background:rgba(5,5,6,.84);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 62px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(16px,env(safe-area-inset-left,0px))}
+.paper{position:relative;max-width:520px;margin:0 auto;background:var(--paper);color:var(--dark);padding:16px 16px 22px;border-radius:2px;box-shadow:0 20px 50px rgba(0,0,0,.7);
+  background-image:repeating-linear-gradient(0deg,transparent 0 27px,rgba(0,0,0,.035) 27px 28px);animation:up .35s cubic-bezier(.2,.9,.3,1)}
+@keyframes up{from{transform:translateY(24px);opacity:0}}
+.sh-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.sh-top .tag{font:700 11px var(--f-cond);letter-spacing:.22em;color:var(--pinkInk)}
+.sh-top h2{margin:2px 0 0;font:900 27px/1 var(--f-title)}
+.sh-top div{flex:1}
+.x{flex:0 0 40px;height:40px;border-radius:50%;border:1.5px solid currentColor;background:transparent;font-size:16px}
+.paper p{font-size:13.5px;line-height:1.55;margin:0 0 10px}
+.rule{background:var(--dark);color:var(--paper);padding:10px 12px;font-size:13px!important}
+.rule b{color:var(--pinkSoft)}
+.paper h3{font:700 14px var(--f-cond);letter-spacing:.16em;text-transform:uppercase;margin:16px 0 8px}
+.fb{min-height:1.4em;font-size:13px;line-height:1.5;margin-top:10px}
+.fb.bad{color:#8a1c1c}
+.fb.ok{color:var(--pinkInk);font-weight:700}
+
+.wit{display:flex;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(0,0,0,.2)}
+.wit .av{flex:0 0 44px;height:44px;border-radius:50%;background:var(--dark);display:grid;place-items:center;font-size:24px}
+.wit .who{font:700 13px var(--f-cond);letter-spacing:.1em;text-transform:uppercase}
+.wit .who small{display:block;font:11px var(--f-mono);letter-spacing:0;text-transform:none;color:#6b6861}
+.wit q{display:block;font-size:13px;line-height:1.5;margin-top:4px;quotes:"«" "»"}
+.wit.liar .who{text-decoration:line-through;text-decoration-color:var(--pinkInk);text-decoration-thickness:2px}
+.times{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tbtn{padding:12px 0;border:1.5px solid var(--dark);background:transparent;font:500 17px var(--f-cond);letter-spacing:.04em;border-radius:2px}
+.tbtn.no{opacity:.35;text-decoration:line-through}
+.tbtn.yes{background:var(--pinkInk);border-color:var(--pinkInk);color:#fff}
+
+.trait{margin-top:16px;border:2px dashed var(--pinkInk);padding:14px;text-align:center;animation:up .5s ease}
+.trait .tl{font:700 11px var(--f-cond);letter-spacing:.22em;color:var(--pinkInk);text-transform:uppercase}
+.trait .tv{font:400 27px/1.15 var(--f-hand);color:var(--pinkInk);margin:8px 0 14px}
+.trait p{text-align:left}
+.trait .big{width:100%}
+
+/* camera */
+.paper.monitor{background:#121315;color:var(--ink);background-image:none;border:1px solid #2b2d31}
+.screenbox{position:relative;border:7px solid #232427;border-radius:10px;background:#000;aspect-ratio:320/200;overflow:hidden;box-shadow:inset 0 0 30px #000,0 0 0 1px #3a3c40}
+#cam{width:100%;height:100%;display:block;image-rendering:pixelated}
+.hud{position:absolute;left:8px;right:8px;top:6px;display:flex;justify-content:space-between;font-size:10px;letter-spacing:.06em;color:#e6e6e6;text-shadow:0 1px 2px #000;pointer-events:none}
+.hud .rec{color:var(--pink)}
+.hud .rec::before{content:"● ";animation:blink 1.2s steps(1) infinite}
+.zoomtag{position:absolute;right:8px;bottom:8px;font:700 12px var(--f-cond);letter-spacing:.14em;color:var(--pink);border:1px solid var(--pink);padding:1px 6px;pointer-events:none;background:rgba(0,0,0,.5)}
+.crash{position:absolute;inset:0;background:#0b0b0c;color:#f1f1f1;padding:12px 14px;font-size:11.5px;line-height:1.45;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.crash b{font:400 34px/1 var(--f-mono);margin-bottom:6px}
+.crash .pk{color:var(--pink)}
+#scrub{width:100%;margin:14px 0 2px;accent-color:var(--pink);height:28px}
+.scrub-l{display:flex;justify-content:space-between;font-size:11px;color:var(--mute)}
+.monitor .fb{color:#d9d5cb}
+.monitor .fb.ok{color:var(--pinkSoft)}
+.monitor .trait{border-color:var(--pink)}
+.monitor .trait .tl,.monitor .trait .tv{color:var(--pinkSoft)}
+#enhance{width:100%;margin-top:6px;font-size:18px}
+
+/* shredder */
+.strips{display:flex;gap:7px;justify-content:center;transition:gap .7s ease;margin:6px 0 4px}
+.strip{flex:1 1 0;max-width:58px;padding:0;border:0;background:none;transition:transform .2s ease;position:relative}
+.strip canvas{width:100%;height:auto;display:block;filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))}
+.strip.sel{transform:translateY(-12px)}
+.strip.sel canvas{filter:drop-shadow(0 0 0 var(--pinkInk)) drop-shadow(0 8px 8px rgba(200,18,79,.45))}
+.strip.pop{animation:pop .3s ease}
+@keyframes pop{50%{transform:scale(1.06)}}
+.strips.solved{gap:0}
+.strips.solved .strip{pointer-events:none}
+.bin{font-size:12px;color:#6b6861;text-align:center}
+
+/* cipher */
+.note{background:var(--paper2);padding:12px;font-size:15px;line-height:1.6;letter-spacing:.06em;border-left:3px solid var(--dark);word-spacing:.15em}
+.note small{display:block;font:400 18px var(--f-hand);letter-spacing:0;color:#4b4943;margin-bottom:4px}
+.disk{display:block;width:min(100%,320px);margin:10px auto 0;touch-action:none;cursor:grab}
+.disk text{font-family:var(--f-mono);font-size:13px;text-anchor:middle;dominant-baseline:central}
+.dctl{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:4px}
+.dctl button{width:46px;height:40px;border:1.5px solid var(--dark);background:transparent;font-size:18px;border-radius:2px}
+.dctl span{font:500 15px var(--f-cond);letter-spacing:.12em;min-width:90px;text-align:center}
+.out{margin-top:12px;background:var(--dark);color:#bdb9af;padding:12px;font-size:14px;line-height:1.6;letter-spacing:.05em;min-height:4.4em;word-spacing:.15em}
+.out.ok{color:#fff;box-shadow:0 0 0 2px var(--pink),0 0 24px rgba(255,61,127,.4)}
+.out .lb{display:block;font:500 10px var(--f-cond);letter-spacing:.24em;color:#77756f;margin-bottom:4px}
+
+/* lineup */
+.profile{background:var(--dark);color:var(--paper);padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}
+.profile span{color:#8f8b82;text-transform:uppercase;font-size:10.5px;letter-spacing:.08em;padding-top:2px}
+.profile b{color:var(--pinkSoft);font-weight:400;font-family:var(--f-hand);font-size:17px;line-height:1.1}
+.cards{display:grid;gap:12px;margin-top:14px}
+.scard{display:flex;gap:12px;padding:12px;background:#ece8dc;border:1px solid rgba(0,0,0,.12);position:relative}
+.scard .av{flex:0 0 58px;height:72px;background:var(--dark);display:grid;place-items:center;font-size:32px;position:relative;overflow:hidden}
+.scard .av .no{position:absolute;bottom:2px;left:0;right:0;text-align:center;font:500 9px var(--f-cond);letter-spacing:.14em;color:#9b9891}
+.scard .bd{flex:1;min-width:0}
+.scard h4{margin:0 0 4px;font:900 18px var(--f-title)}
+.scard dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 8px;font-size:12px;line-height:1.35}
+.scard dt{color:#6b6861;text-transform:uppercase;font-size:10px;letter-spacing:.06em;padding-top:2px}
+.scard dd{margin:0}
+.scard dd.bad{color:#8a1c1c;font-weight:700;text-decoration:underline wavy rgba(138,28,28,.5)}
+.scard .acc{margin-top:8px;padding:8px 14px;border:1.5px solid var(--dark);background:transparent;font:500 13px var(--f-cond);letter-spacing:.14em;text-transform:uppercase}
+.scard .why{font-size:12.5px;color:#8a1c1c;margin-top:6px;line-height:1.45}
+.scard.out{opacity:.45}
+.scard.out .acc{display:none}
+.scard.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.scard.secret .av{background:#16171a;box-shadow:inset 0 0 0 2px var(--pink)}
+.scard.secret h4{color:var(--pinkInk)}
+
+/* final */
+#final{padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+.dossier{position:relative;max-width:520px;width:100%;margin:0 auto;background:var(--paper);color:var(--dark);padding:18px 16px 22px;box-shadow:0 24px 60px rgba(0,0,0,.75);transition:background 3s,box-shadow 3s}
+body.bloom .dossier{background:#fbf3ea;box-shadow:0 24px 70px rgba(80,10,40,.55)}
+.dossier .hd{display:flex;justify-content:space-between;font:700 11px var(--f-cond);letter-spacing:.2em;border-bottom:2px solid var(--dark);padding-bottom:6px}
+.dossier .row1{display:flex;gap:14px;margin-top:14px}
+.photo{flex:0 0 104px;height:132px;background:#141518;position:relative;overflow:hidden;display:grid;place-items:center}
+.photo svg{width:100%;height:100%}
+.photo .cap{position:absolute;bottom:0;left:0;right:0;font-size:9.5px;line-height:1.25;color:#cfcac0;background:rgba(0,0,0,.65);padding:4px 5px;text-align:center}
+.fields{flex:1;min-width:0;display:grid;gap:7px;align-content:start}
+.fld span{display:block;font:500 10px var(--f-cond);letter-spacing:.2em;color:#6b6861;text-transform:uppercase}
+.fld b{font-weight:400;font-size:14px;line-height:1.35;display:block;min-height:1.3em}
+.fld b.name{font:900 34px/1 var(--f-title);color:var(--pinkInk);letter-spacing:.04em}
+.ev-list{margin:12px 0 0;padding:0;list-style:none;display:grid;gap:4px;font-size:13px;line-height:1.45}
+.ev-list li{min-height:1.4em}
+.ev-list li::before{content:"— ";color:var(--pinkInk)}
+.ev-list li:empty::before{content:""}
+.stamp{position:absolute;right:10px;top:150px;font:700 44px/1 var(--f-cond);letter-spacing:.12em;color:var(--pink);border:4px solid var(--pink);padding:4px 14px;transform:rotate(-14deg);opacity:0;pointer-events:none;mix-blend-mode:multiply}
+.stamp.on{animation:stamp .45s cubic-bezier(.5,0,.6,1.4) forwards}
+@keyframes stamp{0%{opacity:0;transform:rotate(-14deg) scale(3)}100%{opacity:.92;transform:rotate(-14deg) scale(1)}}
+.verdict{margin-top:16px;border-top:1px dashed rgba(0,0,0,.3);padding-top:12px}
+.verdict h3{margin:0 0 8px;font:900 22px var(--f-title)}
+.verdict p{margin:0 0 6px;font-size:13.5px;line-height:1.5;min-height:1.4em}
+.sign{font:400 26px var(--f-hand);color:var(--pinkInk);text-align:right;margin-top:8px;min-height:1.2em}
+.closed{max-width:520px;margin:22px auto 0;text-align:center;opacity:0;transform:translateY(16px);transition:opacity 2s,transform 2s}
+.closed.on{opacity:1;transform:none}
+.closed h2{margin:0;font:900 italic clamp(30px,9vw,44px)/1.05 var(--f-title);text-wrap:balance;color:#fff;text-shadow:0 2px 20px rgba(80,0,40,.6)}
+.closed p{font-size:14px;line-height:1.6;color:#fff3ec;margin:12px auto 18px;max-width:34ch}
+.closed .btns{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+.closed .big{border-color:#fff;color:#fff}
+.seasons{margin-top:18px;font-size:12px;color:#ffe3d6}
+.seasons a{color:#fff;margin:0 5px}
+body.shake .dossier{animation:shake .35s}
+</style>
+</head>
+<body>
+<div id="bloomBg"></div>
+<canvas id="rain"></canvas>
+<div class="vignette"></div>
+<div id="flash"></div>
+
+<header class="top" id="top" hidden>
+  <div class="logo">Файна<br><b>справа</b></div>
+  <div class="tb">
+    <button id="hintBtn" aria-label="Підказка"><span class="emo">💡</span></button>
+    <button id="sndBtn" aria-label="Звук"><span class="emo" id="sndIco">🔊</span></button>
+  </div>
+</header>
+
+<!-- TITLE -->
+<section id="title" class="screen center">
+  <div class="tt-kicker">сезон 6 · нуар по-закарпатськи</div>
+  <h1 class="tt">Файна<br><em>справа</em></h1>
+  <div class="tt-line"></div>
+  <p class="tt-sub">Ужгород. Листопад. Дощ. І справа, яку поліція розкрити не змогла.</p>
+  <button class="big" id="openCase">Відкрити справу</button>
+  <p class="tt-note">🎧 зі звуком — атмосферніше</p>
+  <div class="tt-cast">у ролях: дощ · кава · сакура<br>і ти</div>
+</section>
+
+<!-- INTRO -->
+<section id="intro" class="screen" hidden>
+  <div class="typed" id="introText"></div>
+  <button class="big pink" id="takeCase" hidden>Беру справу</button>
+  <p class="skip" id="skipTip">тицьни будь-де, шоб друкувалось швидше</p>
+</section>
+
+<!-- BOARD -->
+<section id="board" class="screen" hidden>
+  <div class="casehead"><span>СПРАВА №0711</span><i>«Сакура в листопаді»</i></div>
+  <div class="wall" id="wall">
+    <svg id="strings"></svg>
+    <button class="ev" data-k="w"></button>
+    <button class="ev" data-k="cam"></button>
+    <div class="sus">
+      <span class="pin" id="susPin"></span><span class="pin" id="susPin2"></span>
+      <div class="face">
+        <svg viewBox="0 0 86 110" aria-hidden="true"><path d="M43 18c-13 0-21 9-21 22 0 9 2 18-3 28 7 2 13 2 18-1l-1 7c-14 3-24 12-26 36h66c-2-24-12-33-26-36l-1-7c5 3 11 3 18 1-5-10-3-19-3-28 0-13-8-22-21-22z" fill="#2c2d31"/></svg>
+        <span class="q">?</span>
+      </div>
+      <div class="info">
+        <h3>ПІДОЗРЮВАНА</h3>
+        <ul id="traits"></ul>
+      </div>
+    </div>
+    <button class="ev" data-k="shred"></button>
+    <button class="ev" data-k="cipher"></button>
+  </div>
+  <div class="narr"><span class="emo">🕵️</span><p id="narr"></p></div>
+  <button class="big" id="toLineup" disabled>Опізнання</button>
+</section>
+
+<!-- SHEET: witnesses -->
+<section class="sheet" id="sh-w" hidden><div class="paper">
+  <div class="sh-top"><div><div class="tag">ДОКАЗ A · ПОКАЗАННЯ</div><h2>Свідки</h2></div><button class="x" data-close>✕</button></div>
+  <p>Четверо бачили, як <i>вона</i> пройшла набережною. Час кожен пам’ятає по-своєму.</p>
+  <p class="rule">Рівно <b>один</b> свідок бреше. Решта троє кажуть правду.</p>
+  <div id="witList"></div>
+  <h3>Коли вона пройшла?</h3>
+  <div class="times" id="times"></div>
+  <div class="fb" id="wFb"></div>
+  <div id="wTrait"></div>
+</div></section>
+
+<!-- SHEET: camera -->
+<section class="sheet" id="sh-cam" hidden><div class="paper monitor">
+  <div class="sh-top"><div><div class="tag" style="color:var(--pinkSoft)">ДОКАЗ B · ВІДЕОЗАПИС</div><h2>Камера 03</h2></div><button class="x" data-close>✕</button></div>
+  <div class="screenbox" id="screenbox">
+    <canvas id="cam" width="320" height="200"></canvas>
+    <div class="hud"><span class="rec">REC</span><span>CAM 03 · НАБЕРЕЖНА</span><span id="camTime">19:00:00</span></div>
+    <div class="zoomtag" id="zoomTag" hidden>ENHANCE ×2</div>
+    <div class="crash" id="crash" hidden>
+      <b>:(</b>
+      <div>КАМЕРА 03 ПЕРЕСТАЛА ПРАЦЮВАТИ</div>
+      <div>Причина: <span class="pk">об’єкт посміхнувся в кадр</span></div>
+      <div>Рівень посмішки: <span class="pk">ЛЕГЕНДАРНИЙ</span></div>
+      <div>Ремонту не підлягає — камера закохалась.</div>
+    </div>
+  </div>
+  <input type="range" id="scrub" min="0" max="45" value="0" step="1" aria-label="Час запису">
+  <div class="scrub-l"><span>19:00</span><span>перемотка</span><span>19:45</span></div>
+  <p class="fb" id="camFb"></p>
+  <button class="big pink" id="enhance" hidden>🔍 Покращити</button>
+  <div id="camTrait"></div>
+</div></section>
+
+<!-- SHEET: shredder -->
+<section class="sheet" id="sh-shred" hidden><div class="paper">
+  <div class="sh-top"><div><div class="tag">ДОКАЗ C · ШРЕДЕР</div><h2>Порізаний ордер</h2></div><button class="x" data-close>✕</button></div>
+  <p>Хтось пропустив ордер через шредер. Смужки зібрали з кошика. Склади їх назад: <b>тицьни на дві смужки</b> — вони поміняються місцями.</p>
+  <div class="strips" id="strips"></div>
+  <div class="bin">🗑️ знайдено в кошику відділку</div>
+  <div class="fb" id="shFb"></div>
+  <div id="shTrait"></div>
+</div></section>
+
+<!-- SHEET: cipher -->
+<section class="sheet" id="sh-cipher" hidden><div class="paper">
+  <div class="sh-top"><div><div class="tag">ДОКАЗ D · ШИФРОВКА</div><h2>Записка</h2></div><button class="x" data-close>✕</button></div>
+  <p>Знайшли під двірником таксі Василя. Писано шифром Цезаря: кожна буква зсунута на кілька позицій абетки.</p>
+  <div class="note"><small>«Ключ — хвилина, коли все сталося.»</small><span id="encTxt"></span></div>
+  <svg class="disk" id="disk" viewBox="-160 -160 320 320" aria-label="Шифрувальний диск"></svg>
+  <div class="dctl"><button id="dL" aria-label="Повернути вліво">⟲</button><span id="dK">ЗСУВ 0</span><button id="dR" aria-label="Повернути вправо">⟳</button></div>
+  <div class="out" id="decOut"><span class="lb">РОЗШИФРОВКА</span><span id="decTxt"></span></div>
+  <div class="fb" id="ciFb"></div>
+  <div id="ciTrait"></div>
+</div></section>
+
+<!-- SHEET: lineup -->
+<section class="sheet" id="sh-line" hidden><div class="paper">
+  <div class="sh-top"><div><div class="tag">ФІНАЛ · ОПІЗНАННЯ</div><h2>Хто з них?</h2></div><button class="x" data-close>✕</button></div>
+  <p>Профіль, який ти склала. Має підходити <b>все</b>:</p>
+  <div class="profile" id="profile"></div>
+  <div class="cards" id="cards"></div>
+</div></section>
+
+<!-- FINAL -->
+<section id="final" class="screen" hidden>
+  <div class="dossier" id="dossier">
+    <div class="hd"><span>ОСОБОВА СПРАВА</span><span>№0711</span></div>
+    <div class="row1">
+      <div class="photo">
+        <svg viewBox="0 0 104 132" aria-hidden="true"><defs><radialGradient id="pg" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#ff3d7f" stop-opacity=".55"/><stop offset="1" stop-color="#ff3d7f" stop-opacity="0"/></radialGradient></defs><rect width="104" height="132" fill="url(#pg)"/><path d="M52 20c-14 0-23 10-23 24 0 10 2 20-3 31 8 2 14 2 20-1l-1 8c-16 3-27 14-29 40h72c-2-26-13-37-29-40l-1-8c6 3 12 3 20 1-5-11-3-21-3-31 0-14-9-24-23-24z" fill="#ff7aa8" opacity=".9"/></svg>
+        <div class="cap">фото не вийшло: камера знову згоріла 📸💥</div>
+      </div>
+      <div class="fields">
+        <div class="fld"><span>ім’я</span><b class="name" id="fName"></b></div>
+        <div class="fld"><span>звідки</span><b id="fFrom"></b></div>
+        <div class="fld"><span>злочин</span><b id="fCrime"></b></div>
+      </div>
+    </div>
+    <ul class="ev-list" id="fEv"><li></li><li></li><li></li><li></li><li></li></ul>
+    <div class="stamp" id="stamp">ВИННА</div>
+    <div class="verdict" id="verdict" hidden>
+      <h3>Вирок</h3>
+      <p id="v0"></p><p id="v1"></p><p id="v2"></p><p id="v3"></p><p id="v4"></p>
+      <div class="sign" id="vSign"></div>
+    </div>
+  </div>
+  <div class="closed" id="closed">
+    <h2>Справу закрито 🌸</h2>
+    <p>Дощ перестав. Світ знову кольоровий. І сакура в листопаді — теж твоя робота.</p>
+    <div class="btns"><button class="big" id="replay">↺ Ще раз</button><button class="big" id="toBoard">До дошки</button></div>
+    <div class="seasons">всі сезони: <a href="../">1</a><a href="../2/">2</a><a href="../3/">3</a><a href="../4/">4</a><a href="../5/">5</a></div>
+  </div>
+</section>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const pad = n => String(n).padStart(2, '0');
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+// ================== СТАН ==================
+const KEY = 'fayna-sprava-v1';
+const blank = { intro: 0, w: 0, cam: 0, shred: 0, cipher: 0, done: 0 };
+let S = { ...blank };
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const KEYS = ['w', 'cam', 'shred', 'cipher'];
+const count = () => KEYS.filter(k => S[k]).length;
+
+// ================== ТЕКСТИ ==================
+const EV = {
+  w:      { tag: 'A', e: '🗣️', cap: '4 свідки, 1 брехун', lab: 'Звідки',   short: 'Закарпаття',   full: 'наша, закарпатська' },
+  cam:    { tag: 'B', e: '📹', cap: 'Камера 03',          lab: 'Посмішка', short: 'ламає камери', full: 'вирубує камери з першого разу' },
+  shred:  { tag: 'C', e: '🗂️', cap: 'Порізаний ордер',    lab: 'Ім’я',     short: 'Я _ _',        full: 'три букви, перша — «Я»' },
+  cipher: { tag: 'D', e: '✉️', cap: 'Шифровка',           lab: 'Хобі',     short: 'квести',       full: 'квести (проходить один прямо зараз)' },
+};
+const INTRO = [
+  { t: 'Ужгород. Листопад. Дощ третю добу.' },
+  { t: 'А в відділок сипляться дивні заяви:' },
+  { t: 'На набережній люди забувають, куди йшли.', c: 'q' },
+  { t: 'Бариста з «Під замком» третій день пересолює лате.', c: 'q' },
+  { t: 'Сакура на набережній зацвіла. В ЛИСТОПАДІ.', c: 'q' },
+  { t: 'Усі свідки кажуть одне: «Вона пройшла — і все.»' },
+  { t: 'Я детектив Фанат. Сам цю справу не вивезу. Треба напарниця — з мозком, зі стилем і без кринжу.' },
+  { t: 'Тобто ти.', c: 'me' },
+];
+
+// ================== ЗВУК ==================
+let AC = null, master = null, wet = null, rainG = null, muted = false;
+let clickBuf = null;
+function ac() {
+  if (!AC) {
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      master = AC.createGain(); master.gain.value = muted ? 0 : 1; master.connect(AC.destination);
+      const dly = AC.createDelay(1); dly.delayTime.value = .33;
+      const fbk = AC.createGain(); fbk.gain.value = .3;
+      wet = AC.createGain(); wet.gain.value = .35;
+      wet.connect(dly); dly.connect(fbk); fbk.connect(dly); dly.connect(master);
+      startRain();
+    } catch (e) { AC = null; }
+  }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function noiseBuf(sec, brown) {
+  const b = AC.createBuffer(1, Math.floor(AC.sampleRate * sec), AC.sampleRate), d = b.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < d.length; i++) {
+    const w = Math.random() * 2 - 1;
+    if (brown) { last = (last + .02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w;
+  }
+  return b;
+}
+function startRain() {
+  const s = AC.createBufferSource(); s.buffer = noiseBuf(3); s.loop = true;
+  const hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+  rainG = AC.createGain(); rainG.gain.value = 0;
+  s.connect(hp); hp.connect(lp); lp.connect(rainG); rainG.connect(master); s.start();
+  rainG.gain.setTargetAtTime(.055, AC.currentTime, 1.5);
+}
+function rainVol(v) { if (rainG) rainG.gain.setTargetAtTime(v, AC.currentTime, 1.2); }
+function env(node, t, a, peak, d) {
+  node.gain.setValueAtTime(0.0001, t);
+  node.gain.exponentialRampToValueAtTime(peak, t + a);
+  node.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+}
+function tone(f, d = .2, type = 'sine', v = .12, at = 0, send = 0) {
+  if (!AC) return;
+  const t = AC.currentTime + at, o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = f; env(g, t, .01, v, d);
+  o.connect(g); g.connect(master); if (send) g.connect(wet);
+  o.start(t); o.stop(t + d + .05);
+}
+function click() {
+  if (!AC) return;
+  const t = AC.currentTime, s = AC.createBufferSource();
+  s.buffer = clickBuf || (clickBuf = noiseBuf(.04));
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2200 + Math.random() * 1800; bp.Q.value = 1.4;
+  const g = AC.createGain(); g.gain.setValueAtTime(.32, t); g.gain.exponentialRampToValueAtTime(.001, t + .035);
+  s.connect(bp); bp.connect(g); g.connect(master); s.start(t); s.stop(t + .05);
+}
+function thunder() {
+  if (!AC) return;
+  const t = AC.currentTime, s = AC.createBufferSource(); s.buffer = noiseBuf(3.5, true);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 160;
+  const g = AC.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.9, t + .25); g.gain.exponentialRampToValueAtTime(.0001, t + 3.3);
+  s.connect(lp); lp.connect(g); g.connect(master); s.start(t); s.stop(t + 3.5);
+}
+function stampSnd() {
+  if (!AC) return;
+  const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(38, t + .25);
+  env(g, t, .005, .7, .3); o.connect(g); g.connect(master); o.start(t); o.stop(t + .4);
+  const s = AC.createBufferSource(); s.buffer = noiseBuf(.15);
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+  const g2 = AC.createGain(); env(g2, t, .003, .5, .12);
+  s.connect(lp); lp.connect(g2); g2.connect(master); s.start(t);
+}
+const chime = () => { tone(784, .3, 'triangle', .11, 0, 1); tone(1047, .5, 'triangle', .1, .11, 1); tone(1568, .7, 'sine', .05, .22, 1); };
+const buzz = () => { tone(150, .22, 'square', .045); tone(110, .3, 'square', .04, .12); };
+const beep = () => tone(1320, .07, 'square', .04);
+const swish = () => { tone(420, .06, 'triangle', .05); tone(620, .06, 'triangle', .04, .05); };
+const mf = m => 440 * Math.pow(2, (m - 69) / 12);
+
+function music() {
+  if (!AC) return;
+  const t0 = AC.currentTime + .15, e = 60 / 72 / 2;
+  const CH = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]];
+  const MEL = [76, 74, 72, 74, 76, 79, 76, 74, 72, 71, 72, 74, 72, 0, 67, 0];
+  const voice = (f, when, d, type, v, send) => {
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(.0001, when); g.gain.exponentialRampToValueAtTime(v, when + (type === 'sine' && d > 2 ? .6 : .012)); g.gain.exponentialRampToValueAtTime(.0001, when + d);
+    o.connect(g); g.connect(master); if (send) g.connect(wet); o.start(when); o.stop(when + d + .05);
+  };
+  for (let rep = 0; rep < 4; rep++) for (let b = 0; b < 4; b++) {
+    const bt = t0 + (rep * 4 + b) * 8 * e, c = CH[b];
+    c.forEach(m => voice(mf(m), bt, 8 * e, 'sine', .028, 0));
+    voice(mf(c[0] - 12), bt, 8 * e, 'triangle', .05, 0);
+    const arp = [c[0], c[1], c[2], c[3], c[2] + 12, c[3], c[2], c[1]];
+    arp.forEach((m, i) => voice(mf(m + 12), bt + i * e, .7, 'triangle', .035, 1));
+    if (rep >= 1) for (let q = 0; q < 4; q++) { const m = MEL[b * 4 + q]; if (m) voice(mf(m), bt + q * 2 * e, 1.3, 'sine', .07, 1); }
+  }
+}
+
+$('#sndBtn').onclick = () => {
+  muted = !muted; $('#sndIco').textContent = muted ? '🔇' : '🔊';
+  ac(); if (master) master.gain.setTargetAtTime(muted ? 0 : 1, AC.currentTime, .05);
+};
+
+// ================== ДОЩ / ПЕЛЮСТКИ ==================
+const rc = $('#rain'), rx = rc.getContext('2d');
+let RW = 0, RH = 0, drops = [], petals = [], weather = 'rain', flashA = 0;
+function rsz() {
+  RW = innerWidth; RH = innerHeight;
+  rc.width = RW * DPR; rc.height = RH * DPR; rx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const n = Math.round(RW * RH / 5200);
+  drops = Array.from({ length: n }, () => ({ x: Math.random() * RW * 1.2, y: Math.random() * RH, l: 10 + Math.random() * 18, v: 9 + Math.random() * 9, a: .12 + Math.random() * .22 }));
+  if (KEYS.length && !$('#board').hidden) drawStrings();
+}
+addEventListener('resize', rsz);
+function mkPetal(top) {
+  return { x: Math.random() * RW, y: top ? -20 - Math.random() * RH : Math.random() * RH, r: 4 + Math.random() * 5, rot: Math.random() * 6.28, vr: (Math.random() - .5) * .06,
+    vx: .3 + Math.random() * .8, vy: .7 + Math.random() * 1.1, sw: Math.random() * 6.28, c: ['#ffc2d6', '#ff9cc0', '#ffd9e5', '#ff7aa8'][Math.random() * 4 | 0] };
+}
+function rainLoop() {
+  rx.clearRect(0, 0, RW, RH);
+  if (weather === 'rain' || drops.length) {
+    rx.lineWidth = 1;
+    for (const d of drops) {
+      rx.strokeStyle = `rgba(190,200,215,${d.a})`;
+      rx.beginPath(); rx.moveTo(d.x, d.y); rx.lineTo(d.x - d.l * .18, d.y + d.l); rx.stroke();
+      d.y += d.v; d.x -= d.v * .18;
+      if (d.y > RH) { if (weather === 'rain') { d.y = -20; d.x = Math.random() * RW * 1.2; } else d.dead = 1; }
+    }
+    if (weather !== 'rain') drops = drops.filter(d => !d.dead);
+  }
+  if (weather === 'petals') {
+    if (petals.length < 70 && Math.random() < .5) petals.push(mkPetal(true));
+    for (const p of petals) {
+      p.sw += .03; p.x += p.vx + Math.sin(p.sw) * .6; p.y += p.vy; p.rot += p.vr;
+      if (p.y > RH + 20 || p.x > RW + 20) Object.assign(p, mkPetal(true));
+      rx.save(); rx.translate(p.x, p.y); rx.rotate(p.rot); rx.scale(1, .6 + .4 * Math.abs(Math.sin(p.sw)));
+      rx.fillStyle = p.c; rx.beginPath(); rx.ellipse(0, 0, p.r, p.r * .62, 0, 0, 6.283); rx.fill();
+      rx.restore();
+    }
+  }
+  if (flashA > 0) { $('#flash').style.opacity = flashA; flashA = Math.max(0, flashA - .045); if (!flashA) $('#flash').style.opacity = 0; }
+  requestAnimationFrame(rainLoop);
+}
+function lightning() {
+  if (weather !== 'rain') return;
+  flashA = .42; setTimeout(() => { if (weather === 'rain') flashA = .3; }, 160);
+  setTimeout(thunder, 500 + Math.random() * 700);
+}
+(function sched() { setTimeout(() => { if (!document.hidden && $('#title').hidden && $('#final').hidden) lightning(); sched(); }, 16000 + Math.random() * 14000); })();
+
+// ================== ДРУКАРСЬКА МАШИНКА ==================
+let fast = false;
+async function type(el, text, spd = 30, snd = true) {
+  const cur = document.createElement('span'); cur.className = 'cur';
+  const tn = document.createTextNode(''); el.appendChild(tn); el.appendChild(cur);
+  for (const ch of text) {
+    tn.data += ch;
+    if (snd && ch !== ' ' && Math.random() < .8) click();
+    const p = '.!?'.includes(ch) ? spd * 7 : ch === ',' || ch === ':' ? spd * 3 : spd;
+    await sleep(fast ? 4 : p * (.7 + Math.random() * .6));
+  }
+  cur.remove();
+}
+
+// ================== ЕКРАНИ ==================
+function show(id) {
+  ['title', 'intro', 'board', 'final'].forEach(x => { $('#' + x).hidden = x !== id; });
+  $('#top').hidden = id === 'title';
+}
+$('#openCase').onclick = () => {
+  ac();
+  if (S.intro) { show('board'); renderBoard(); }
+  else runIntro();
+};
+if (S.intro) $('#openCase').textContent = S.done ? 'Переглянути справу' : 'Продовжити справу';
+
+async function runIntro() {
+  show('intro'); fast = false;
+  const box = $('#introText'); box.innerHTML = ''; $('#takeCase').hidden = true; $('#skipTip').hidden = false;
+  await sleep(500);
+  for (const L of INTRO) {
+    const p = document.createElement('p'); if (L.c) p.className = L.c; box.appendChild(p);
+    await type(p, L.t, L.c === 'me' ? 70 : 30);
+    await sleep(fast ? 80 : 420);
+    if (L.t.startsWith('Сакура')) lightning();
+  }
+  $('#skipTip').hidden = true; $('#takeCase').hidden = false;
+}
+$('#intro').addEventListener('click', e => { if (e.target.closest('button')) return; fast = true; });
+$('#takeCase').onclick = () => { S.intro = 1; save(); stampSnd(); show('board'); renderBoard(); };
+
+// ================== ДОШКА ==================
+let justSolved = null, narrTok = 0;
+function narrText() {
+  const n = count();
+  if (S.done) return 'Справа закрита, але я її ще довго буду перечитувати. Особливо графу «ім’я».';
+  if (n === 4) return 'Всі докази є, профіль складений. Я вже здогадуюсь, хто то… але скажи ти. Опізнання!';
+  if (n === 0) return 'Напарнице, свідки туй, під дощем мерзнуть. Почни з них — без точного часу ми нич не найдемо.';
+  if (S.w && !S.cam && !S.cipher) return 'Час є — 19:07. Тепер камера на набережній. І записка — там щось було про хвилини, ци не так?';
+  if (!S.w) return 'Файно йде, без кепу! Але свідків ще ніхто не опитав — а вони знають час.';
+  return ['', 'Красиво працюєш. Слей, напарнице. Йдемо далі.', 'Мій детективний вайб каже: вона десь зовсім близько 👀', 'Лишився один доказ. Дошка сама себе не заповнить.'][n];
+}
+async function narr() {
+  const tok = ++narrTok, p = $('#narr'); p.textContent = '';
+  const txt = narrText(), tn = document.createTextNode(''); p.appendChild(tn);
+  for (const ch of txt) { if (tok !== narrTok) return; tn.data += ch; await sleep(14); }
+}
+function renderBoard() {
+  for (const k of KEYS) {
+    const b = $(`.ev[data-k="${k}"]`), ev = EV[k], locked = k === 'cam' && !S.w;
+    b.classList.toggle('locked', locked);
+    b.classList.toggle('new', !S[k] && !locked);
+    b.classList.toggle('done', !!S[k]);
+    b.innerHTML = `<span class="pin"></span><span class="anc"></span><div class="ph"><span class="lbl">ДОКАЗ ${ev.tag}</span><span class="emo">${locked ? '🔒' : ev.e}</span>${S[k] ? '<span class="stmp">РОЗКРИТО</span>' : ''}</div><div class="cap">${locked ? 'спершу дізнайся час' : ev.cap}</div>`;
+  }
+  $('#traits').innerHTML = KEYS.map(k => `<li class="${S[k] ? 'on' : ''}"><span>${EV[k].lab}</span><b>${S[k] ? EV[k].short : '???'}</b></li>`).join('');
+  const n = count(), lb = $('#toLineup');
+  lb.disabled = n < 4; lb.classList.toggle('pink', n === 4);
+  lb.textContent = S.done ? 'Вирок ✓' : n < 4 ? `🔒 Опізнання · ${n}/4` : 'Опізнання →';
+  narr();
+  requestAnimationFrame(() => drawStrings(justSolved));
+  justSolved = null;
+}
+function drawStrings(anim) {
+  const svg = $('#strings'), wr = $('#wall').getBoundingClientRect();
+  if (!wr.width) return;
+  svg.setAttribute('viewBox', `0 0 ${wr.width} ${wr.height}`);
+  let h = '';
+  for (const k of KEYS) {
+    if (!S[k]) continue;
+    const sp = $(k === 'w' || k === 'cam' ? '#susPin' : '#susPin2').getBoundingClientRect();
+    const tx = sp.left + sp.width / 2 - wr.left, ty = sp.top + sp.height / 2 - wr.top;
+    const p = $(`.ev[data-k="${k}"] .anc`).getBoundingClientRect();
+    const x = p.left + p.width / 2 - wr.left, y = p.top + p.height / 2 - wr.top;
+    h += `<path class="str${k === anim ? ' anim' : ''}" d="M${x.toFixed(1)} ${y.toFixed(1)} Q${((x + tx) / 2).toFixed(1)} ${((y + ty) / 2 + 22).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)}"/>`;
+  }
+  svg.innerHTML = h;
+  if (anim) swish();
+}
+$$('.ev').forEach(b => b.onclick = () => {
+  const k = b.dataset.k;
+  if (k === 'cam' && !S.w) { buzz(); narrSay('Камера — то 45 хвилин дощу. Без точного часу ми там до Різдва сидітимемо. Спершу свідки.'); return; }
+  openSheet(k);
+});
+async function narrSay(t) {
+  const tok = ++narrTok, p = $('#narr'); p.textContent = '';
+  const tn = document.createTextNode(''); p.appendChild(tn);
+  for (const ch of t) { if (tok !== narrTok) return; tn.data += ch; await sleep(14); }
+}
+$('#toLineup').onclick = () => { if (S.done) { runFinal(); return; } openSheet('line'); };
+
+// ================== ЛИСТИ ==================
+let cur = null;
+const INIT = {};
+function openSheet(k) {
+  ac(); cur = k;
+  const sh = $('#sh-' + k); sh.hidden = false; sh.scrollTop = 0;
+  INIT[k] && INIT[k]();
+}
+function closeSheet() {
+  if (!cur) return;
+  $('#sh-' + cur).hidden = true;
+  if (cur === 'cam') stopCam();
+  cur = null; renderBoard();
+}
+$$('[data-close]').forEach(b => b.onclick = closeSheet);
+$$('.sheet').forEach(s => s.addEventListener('click', e => { if (e.target === s) closeSheet(); }));
+function solve(k) { if (S[k]) return; S[k] = 1; save(); justSolved = k; chime(); }
+function traitHTML(k, intro) {
+  return `<div class="trait"><div class="tl">+ до профілю підозрюваної</div>${intro ? `<p>${intro}</p>` : ''}<div class="tv">${EV[k].lab}: ${EV[k].full}</div><button class="big pink" data-board>На дошку →</button></div>`;
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-board]')) closeSheet(); });
+function fb(id, txt, cls = '') { const el = $(id); el.className = 'fb ' + cls; el.innerHTML = txt; }
+
+// ---------- A. СВІДКИ ----------
+const WIT = [
+  { n: 'Бабця Марішка', r: 'лавочка на набережній', e: '👵', t: 'Ой, дітки, то було вже по 19:10, не раньше! Я якраз серіал вимкнула, а вона йде — така файна, шо я окуляри два рази протерла.', ok: t => t >= 10 },
+  { n: 'Бариста Петро', r: 'кав’ярня «Під замком»', e: '☕', t: 'Ще до 19:20 то було, сто процентів. Вона сказала «файно» про моє лате — і я з того моменту все пересолюю.', ok: t => t < 20 },
+  { n: 'Таксист Василь', r: 'стоянка біля пішохідного мосту', e: '🚕', t: 'Ніт, о 19:15 то точно не було — о 19:15 я пісню на всю слухав. А потім чую «файно»… і таксометр сам на нуль скинувся.', ok: t => t !== 15 },
+  { n: 'Студентка Оксана', r: 'УжНУ, другий курс', e: '🎓', t: 'Бабця Марішка бреше. Вона серіали без перерви дивиться, нич вона не вимикала. А дівча — імба: «файно» сказала так, шо я конспект забула.', ok: t => t < 10 },
+];
+const TIMES = [7, 15, 30, 42];
+INIT.w = () => {
+  $('#witList').innerHTML = WIT.map((w, i) => `<div class="wit" id="wit${i}"><div class="av"><span class="emo">${w.e}</span></div><div><div class="who">${w.n}<small>${w.r}</small></div><q>${w.t}</q></div></div>`).join('');
+  $('#times').innerHTML = TIMES.map(t => `<button class="tbtn" data-t="${t}">19:${pad(t)}</button>`).join('');
+  $('#wTrait').innerHTML = '';
+  fb('#wFb', '');
+  if (S.w) wDone(false);
+  $$('#times .tbtn').forEach(b => b.onclick = () => {
+    if (S.w) return;
+    const t = +b.dataset.t, liars = WIT.filter(w => !w.ok(t));
+    if (liars.length === 1) { b.classList.add('yes'); solve('w'); wDone(true); return; }
+    buzz(); b.classList.add('no');
+    const names = liars.map(w => w.n).join(', ');
+    fb('#wFb', `Якщо о 19:${pad(t)} — то брешуть ${liars.length === 2 ? 'двоє' : liars.length === 3 ? 'троє' : liars.length}: ${names}. А брехун лем один. Ніт, не сходиться.`, 'bad');
+  });
+};
+function wDone(fresh) {
+  $$('#times .tbtn').forEach(b => { b.classList.toggle('yes', b.dataset.t === '7'); b.classList.toggle('no', b.dataset.t !== '7'); });
+  $('#wit0').classList.add('liar');
+  fb('#wFb', 'Сходиться! Бреше лем бабця Марішка — вона хтіла, шоб усе було як у її серіалі. Вона пройшла о <b>19:07</b>.', 'ok');
+  $('#wTrait').innerHTML = traitHTML('w', 'І ще: всі четверо чули від неї «файно». Без акценту, по-нашому. Тото не туристка.');
+  if (fresh) setTimeout(() => $('#wTrait').scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+}
+
+// ---------- B. КАМЕРА ----------
+const cv = $('#cam'), cx = cv.getContext('2d');
+let camMin = 0, camStage = 0, enh = 0, camRAF = 0, glitchT = 0;
+const scrub = $('#scrub');
+const noiseC = [0, 1, 2].map(() => {
+  const c = document.createElement('canvas'); c.width = 160; c.height = 100;
+  const g = c.getContext('2d'), id = g.createImageData(160, 100);
+  for (let i = 0; i < id.data.length; i += 4) { const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  g.putImageData(id, 0, 0); return c;
+});
+function drawGirl(c, x, y, s, col, face) {
+  c.fillStyle = col;
+  c.beginPath(); c.ellipse(x, y - 52 * s, 10 * s, 13 * s, 0, 0, 6.283); c.fill();
+  c.beginPath(); c.moveTo(x - 10 * s, y - 52 * s); c.quadraticCurveTo(x - 14 * s, y - 36 * s, x - 9 * s, y - 31 * s); c.lineTo(x + 9 * s, y - 31 * s); c.quadraticCurveTo(x + 14 * s, y - 36 * s, x + 10 * s, y - 52 * s); c.fill();
+  c.beginPath(); c.moveTo(x - 7 * s, y - 38 * s); c.lineTo(x + 7 * s, y - 38 * s); c.lineTo(x + 12 * s, y - 11 * s); c.lineTo(x - 12 * s, y - 11 * s); c.closePath(); c.fill();
+  c.fillRect(x - 5 * s, y - 11 * s, 3 * s, 11 * s); c.fillRect(x + 2 * s, y - 11 * s, 3 * s, 11 * s);
+  if (face) {
+    c.fillStyle = '#ffe3ec'; c.beginPath(); c.ellipse(x, y - 50 * s, 6.6 * s, 8.2 * s, 0, 0, 6.283); c.fill();
+    c.strokeStyle = '#c8124f'; c.lineWidth = Math.max(1, 1.1 * s); c.lineCap = 'round';
+    c.beginPath(); c.arc(x - 2.6 * s, y - 51 * s, 1.4 * s, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    c.beginPath(); c.arc(x + 2.6 * s, y - 51 * s, 1.4 * s, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    c.beginPath(); c.arc(x, y - 47.6 * s, 2.8 * s, Math.PI * .12, Math.PI * .88); c.stroke();
+    c.fillStyle = 'rgba(255,61,127,.35)';
+    c.beginPath(); c.arc(x - 4.4 * s, y - 47.8 * s, 1.3 * s, 0, 6.283); c.arc(x + 4.4 * s, y - 47.8 * s, 1.3 * s, 0, 6.283); c.fill();
+  }
+}
+const figC = document.createElement('canvas'); figC.width = 60; figC.height = 84;
+drawGirl(figC.getContext('2d'), 30, 82, 1.2, '#ffb3cf', false);
+function rnd(seed) { let s = seed % 2147483647; if (s <= 0) s += 2147483646; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+function person(c, x, y, h, umb) {
+  c.fillStyle = '#0d0e10';
+  c.fillRect(x - 3, y - h * .62, 6, h * .5); c.fillRect(x - 3, y - h * .14, 2, h * .14); c.fillRect(x + 1, y - h * .14, 2, h * .14);
+  c.beginPath(); c.arc(x, y - h * .7, 3, 0, 6.283); c.fill();
+  if (umb) { c.fillStyle = '#2e3136'; c.beginPath(); c.arc(x, y - h * .78, 11, Math.PI, 0); c.fill(); c.fillRect(x - .5, y - h * .78, 1, h * .2); }
+}
+function scene(m, t) {
+  const c = cx;
+  let g = c.createLinearGradient(0, 0, 0, 130); g.addColorStop(0, '#121418'); g.addColorStop(1, '#2a2d32');
+  c.fillStyle = g; c.fillRect(0, 0, 320, 130);
+  c.fillStyle = '#1c1f23'; c.beginPath(); c.moveTo(90, 128); c.quadraticCurveTo(200, 38, 330, 78); c.lineTo(330, 128); c.fill();
+  c.fillStyle = '#15171a'; c.fillRect(203, 56, 54, 18); c.fillRect(208, 43, 9, 15); c.fillRect(243, 45, 9, 13); c.fillRect(226, 49, 8, 9);
+  // будинок з кав'ярнею
+  c.fillStyle = '#1f2125'; c.fillRect(0, 20, 106, 130);
+  c.fillStyle = '#2b2e33'; for (let i = 0; i < 4; i++) c.fillRect(12 + i * 22, 30, 12, 14);
+  c.fillStyle = '#cfcfcf'; c.font = 'bold 11px "PT Mono", monospace'; c.fillText('КАВА', 36, 63);
+  const wg = c.createLinearGradient(10, 72, 90, 140); wg.addColorStop(0, '#5c5f65'); wg.addColorStop(1, '#33363b');
+  c.fillStyle = wg; c.fillRect(10, 72, 80, 68);
+  c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 6; c.beginPath(); c.moveTo(20, 140); c.lineTo(60, 72); c.stroke();
+  if (m === 7) { c.save(); c.globalAlpha = .6 + Math.sin(t / 300) * .1; drawGirl(c, 34, 138, .52, '#ff7aa8', false); c.restore(); }
+  c.strokeStyle = '#121316'; c.lineWidth = 3; c.strokeRect(10, 72, 80, 68); c.beginPath(); c.moveTo(50, 72); c.lineTo(50, 140); c.stroke();
+  if (camStage === 2 && enh === 0) { c.save(); c.setLineDash([4, 3]); c.strokeStyle = '#ff3d7f'; c.lineWidth = 2; c.strokeRect(7, 69, 86, 74); c.restore(); }
+  // вулиця
+  c.fillStyle = '#25272b'; c.fillRect(106, 126, 214, 24);
+  c.fillStyle = '#1b1d20'; c.fillRect(0, 150, 320, 8);
+  // ліхтарі
+  for (const lx of [140, 264]) {
+    const lg = c.createRadialGradient(lx, 72, 2, lx, 72, 46); lg.addColorStop(0, 'rgba(230,230,220,.55)'); lg.addColorStop(1, 'rgba(230,230,220,0)');
+    c.fillStyle = lg; c.fillRect(lx - 50, 24, 100, 100);
+    c.fillStyle = 'rgba(230,230,220,.07)'; c.beginPath(); c.moveTo(lx - 4, 74); c.lineTo(lx - 30, 150); c.lineTo(lx + 30, 150); c.lineTo(lx + 4, 74); c.fill();
+    c.fillStyle = '#0e0f11'; c.fillRect(lx - 1.5, 72, 3, 78); c.fillStyle = '#e8e8e0'; c.fillRect(lx - 4, 68, 8, 5);
+  }
+  // сакура
+  c.strokeStyle = '#0f1012'; c.lineWidth = 4; c.beginPath(); c.moveTo(300, 150); c.lineTo(296, 108); c.stroke();
+  c.lineWidth = 2; c.beginPath(); c.moveTo(296, 112); c.lineTo(280, 92); c.moveTo(297, 108); c.lineTo(312, 88); c.moveTo(288, 101); c.lineTo(286, 86); c.moveTo(305, 98); c.lineTo(318, 96); c.stroke();
+  if (m >= 7) { const r = rnd(77); c.fillStyle = '#ff6f9f'; for (let i = 0; i < 42; i++) { const a = r() * 6.28, d = r() * 22; c.globalAlpha = .55 + r() * .45; c.fillRect(298 + Math.cos(a) * d * 1.2, 96 + Math.sin(a) * d * .7, 2, 2); } c.globalAlpha = 1; }
+  // перила і річка
+  c.strokeStyle = '#4a4d52'; c.lineWidth = 2; c.beginPath(); c.moveTo(0, 150); c.lineTo(320, 150); c.stroke();
+  c.lineWidth = 1; for (let x = 4; x < 320; x += 12) { c.beginPath(); c.moveTo(x, 150); c.lineTo(x, 158); c.stroke(); }
+  c.fillStyle = '#0e1013'; c.fillRect(0, 158, 320, 42);
+  for (const lx of [140, 264]) { c.fillStyle = 'rgba(230,230,220,.13)'; for (let i = 0; i < 5; i++) c.fillRect(lx - 6 + Math.sin(t / 400 + i) * 3, 162 + i * 7, 12 - i, 2); }
+  if (m >= 7) { c.fillStyle = 'rgba(255,111,159,.18)'; for (let i = 0; i < 4; i++) c.fillRect(290 + Math.sin(t / 500 + i) * 3, 164 + i * 8, 14 - i * 2, 2); }
+  // перехожі
+  if (m !== 7) {
+    const r = rnd(m * 97 + 13), n = 1 + Math.floor(r() * 3);
+    for (let i = 0; i < n; i++) person(c, 116 + r() * 165, 149, 34 + r() * 8, r() < .7);
+  } else {
+    const amt = .5 + Math.sin(t / 130) * .25 + (glitchT > t ? 1 : 0);
+    for (let y = 0; y < 84; y += 3) c.drawImage(figC, 0, y, 60, 3, 147 + (Math.random() - .5) * 18 * amt, 66 + y, 60, 3);
+    for (let i = 0; i < 26; i++) { c.fillStyle = Math.random() < .5 ? 'rgba(255,61,127,.75)' : 'rgba(255,255,255,.6)'; c.fillRect(140 + Math.random() * 74, 62 + Math.random() * 90, 2 + Math.random() * 12, 1 + Math.random() * 2); }
+  }
+}
+function zoomView(level, t) {
+  const R = [[24, 15], [24, 15], [48, 30], [96, 60]][level], w = R[0], h = R[1];
+  const o = zoomView.c || (zoomView.c = document.createElement('canvas'));
+  o.width = w; o.height = h; const g = o.getContext('2d');
+  const bg = g.createLinearGradient(0, 0, w, h); bg.addColorStop(0, '#62656b'); bg.addColorStop(1, '#2d3035'); g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = w / 10; g.beginPath(); g.moveTo(w * .05, h); g.lineTo(w * .4, 0); g.stroke();
+  if (level >= 3) { const gl = g.createRadialGradient(w / 2, h * .3, 1, w / 2, h * .3, h * .7); gl.addColorStop(0, 'rgba(255,61,127,.55)'); gl.addColorStop(1, 'rgba(255,61,127,0)'); g.fillStyle = gl; g.fillRect(0, 0, w, h); }
+  drawGirl(g, w / 2, h * 1.55, h / 46, '#ff7aa8', level >= 2);
+  if (level >= 3) {
+    g.fillStyle = '#ffd1e0'; g.font = `${Math.round(h / 7)}px sans-serif`;
+    for (let i = 0; i < 5; i++) { const a = t / 600 + i * 1.256; g.fillText('♥', w / 2 + Math.cos(a) * w * .32 - 3, h * .45 + Math.sin(a) * h * .3); }
+  }
+  cx.imageSmoothingEnabled = false; cx.drawImage(o, 0, 0, 320, 200); cx.imageSmoothingEnabled = true;
+}
+function camFrame(t) {
+  if (camStage >= 6) { cx.fillStyle = '#000'; cx.fillRect(0, 0, 320, 200); }
+  else {
+    if (camStage === 2 && enh > 0) zoomView(enh, t); else scene(camMin, t);
+    cx.strokeStyle = 'rgba(200,205,215,.18)'; cx.lineWidth = 1;
+    for (let i = 0; i < 34; i++) { const x = Math.random() * 330, y = Math.random() * 200; cx.beginPath(); cx.moveTo(x, y); cx.lineTo(x - 2, y + 9); cx.stroke(); }
+    cx.globalAlpha = .13; cx.drawImage(noiseC[(t / 60 | 0) % 3], 0, 0, 320, 200); cx.globalAlpha = 1;
+    cx.fillStyle = 'rgba(0,0,0,.18)'; for (let y = (t / 40 | 0) % 3; y < 200; y += 3) cx.fillRect(0, y, 320, 1);
+    if (glitchT > t) { const y = Math.random() * 190; cx.drawImage(cv, 0, y, 320, 10, (Math.random() - .5) * 30, y, 320, 10); }
+  }
+  camRAF = requestAnimationFrame(camFrame);
+}
+function stopCam() { cancelAnimationFrame(camRAF); camRAF = 0; }
+const camIdle = ['Тут нич цікавого: дощ, парасолі, ліхтарі.', 'Звичайний вечір. Перемотуй далі.', 'Ніт, то просто дядько з парасолею.', 'Пусто. Лем дощ.'];
+function camMsg() {
+  if (camStage >= 2) return;
+  if (camMin === 7) fb('#camFb', 'Стоп! 19:07. Шо то за рожевий шум посеред кадру?.. Тицьни на нього.');
+  else if (camMin > 7 && camStage === 0) fb('#camFb', 'Сакура вже цвіте… А о 19:00 була гола. Шось сталося трохи раніше.');
+  else fb('#camFb', 'Перемотуй запис повзунком. Як шось помітиш — тицяй прямо по кадру.');
+}
+INIT.cam = () => {
+  $('#camTrait').innerHTML = ''; $('#zoomTag').hidden = true; $('#enhance').hidden = true;
+  if (S.cam) {
+    camStage = 6; enh = 3; camMin = 7; scrub.value = 7; scrub.disabled = true; $('#camTime').textContent = '19:07:00';
+    $('#crash').hidden = false; fb('#camFb', 'Камера 03 досі в лікарні. Камеряча любов — то серйозно.');
+    $('#camTrait').innerHTML = traitHTML('cam', '');
+  } else {
+    camStage = 0; enh = 0; scrub.disabled = false; $('#crash').hidden = true;
+    camMin = +scrub.value; $('#camTime').textContent = `19:${pad(camMin)}:00`; camMsg();
+  }
+  if (!camRAF) camRAF = requestAnimationFrame(camFrame);
+};
+scrub.oninput = () => {
+  camMin = +scrub.value; $('#camTime').textContent = `19:${pad(camMin)}:00`;
+  if (camStage === 1 && camMin !== 7) camStage = 0;
+  if (camMin === 7) glitchT = performance.now() + 400;
+  tone(220 + camMin * 12, .03, 'square', .02); camMsg();
+};
+cv.addEventListener('click', e => {
+  if (camStage >= 2 || S.cam) return;
+  const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 320, y = (e.clientY - r.top) / r.height * 200;
+  if (camMin !== 7) { fb('#camFb', camIdle[Math.random() * camIdle.length | 0]); return; }
+  const inFig = x > 135 && x < 220 && y > 55 && y < 155, inWin = x > 6 && x < 94 && y > 66 && y < 146;
+  if (inWin && camStage >= 1) {
+    camStage = 2; enh = 0; scrub.disabled = true; beep();
+    fb('#camFb', 'Вітрина кав’ярні! У склі — її відображення, без шуму. А тепер — як у кіно:', 'ok');
+    $('#enhance').hidden = false; return;
+  }
+  if (inFig) { camStage = 1; glitchT = performance.now() + 700; buzz(); fb('#camFb', 'Матриця не витримує — пряма зйомка в суцільному шумі. Але камера бачить не лем напряму… Де ще в кадрі її видно?'); return; }
+  if (inWin) { fb('#camFb', 'Вітрина як вітрина. Спершу глянь на той рожевий шум у центрі.'); return; }
+  fb('#camFb', camStage === 1 ? 'Тут лем дощ. Шукай, де вона відбивається.' : 'Тицьни на той рожевий шум у центрі кадру.');
+});
+const ENH = ['', 'ENHANCE ×2. Видно силует. Ще!', 'ENHANCE ×4. Вона… посміхається? Ще раз!', 'ENHANCE ×8. О ні. Вона посміхнулась прямо в камеру…'];
+$('#enhance').onclick = () => {
+  if (enh >= 3) return;
+  enh++; beep(); tone(660 + enh * 220, .15, 'sine', .06, .08);
+  $('#zoomTag').hidden = false; $('#zoomTag').textContent = 'ENHANCE ×' + (2 ** enh);
+  fb('#camFb', ENH[enh], enh === 3 ? 'ok' : '');
+  if (enh === 3) {
+    $('#enhance').hidden = true;
+    setTimeout(() => { glitchT = performance.now() + 1100; buzz(); }, 1600);
+    setTimeout(() => {
+      camStage = 6; $('#zoomTag').hidden = true; $('#crash').hidden = false; stampSnd(); solve('cam');
+      fb('#camFb', 'Камера не пережила її посмішку. Протокол: це вже третя камера за тиждень.', 'ok');
+      $('#camTrait').innerHTML = traitHTML('cam', '');
+      setTimeout(() => $('#camTrait').scrollIntoView({ behavior: 'smooth', block: 'center' }), 250);
+    }, 2800);
+  }
+};
+
+// ---------- C. ШРЕДЕР ----------
+const NS = 6, SW = 50, SH = 290;
+let order = [3, 0, 5, 2, 4, 1], sel = -1, stripsBuilt = false;
+const stripC = [];
+function drawDoc() {
+  const c = document.createElement('canvas'); c.width = SW * NS * 2; c.height = SH * 2;
+  const g = c.getContext('2d'); g.scale(2, 2);
+  const W = SW * NS;
+  g.fillStyle = '#efeadc'; g.fillRect(0, 0, W, SH);
+  g.strokeStyle = 'rgba(0,0,0,.05)'; for (let y = 22; y < SH; y += 18) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  g.fillStyle = '#1a1a1c'; g.textAlign = 'center';
+  g.font = '700 12px Oswald, "Arial Narrow", sans-serif'; g.fillText('АГЕНЦІЯ «ФАЙНА СПРАВА»', W / 2, 24);
+  g.fillRect(20, 31, W - 40, 1.5);
+  g.font = '900 25px "Playfair Display", Georgia, serif'; g.fillText('ОРДЕР', W / 2, 62);
+  g.font = '13px "PT Mono", monospace'; g.fillText('на затримання підозрюваної', W / 2, 82);
+  g.textAlign = 'left'; g.font = '13px "PT Mono", monospace'; g.fillText('Ім’я:', 22, 120);
+  g.fillStyle = '#c8124f'; g.font = '900 38px "Playfair Display", Georgia, serif'; g.fillText('Я _ _', 112, 126);
+  g.fillStyle = '#1a1a1c'; g.font = '13px "PT Mono", monospace';
+  g.fillText('Прикмети: фест гарна.', 22, 158);
+  g.fillText('Свідки непритомніють,', 22, 178);
+  g.fillText('камери згорають.', 22, 198);
+  g.fillText('Без окулярів не дивитись!', 22, 218);
+  g.save(); g.translate(78, 254); g.rotate(-.18); g.strokeStyle = '#c8124f'; g.lineWidth = 2.5;
+  g.beginPath(); g.arc(0, 0, 30, 0, 6.283); g.stroke(); g.beginPath(); g.arc(0, 0, 24, 0, 6.283); g.stroke();
+  g.fillStyle = '#c8124f'; g.font = '700 9px Oswald, sans-serif'; g.textAlign = 'center'; g.fillText('ФАЙНА', 0, -3); g.fillText('СПРАВА', 0, 9); g.restore();
+  g.fillStyle = '#1a1a1c'; g.font = '24px "Marck Script", cursive'; g.textAlign = 'left'; g.fillText('дет. Фанат', 150, 262);
+  g.strokeStyle = '#1a1a1c'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(148, 270); g.bezierCurveTo(190, 262, 230, 280, 280, 266); g.stroke();
+  g.fillStyle = '#c8124f'; g.font = '22px sans-serif'; g.fillText('♥', 248, 126);
+  return c;
+}
+function buildStrips() {
+  const doc = drawDoc();
+  for (let i = 0; i < NS; i++) {
+    const c = document.createElement('canvas'); c.width = SW * 2; c.height = SH * 2;
+    const g = c.getContext('2d');
+    g.drawImage(doc, i * SW * 2, 0, SW * 2, SH * 2, 0, 0, SW * 2, SH * 2);
+    g.globalCompositeOperation = 'destination-out';
+    const r = rnd(i * 31 + 7);
+    for (let y = 0; y < SH * 2; y += 8) { g.beginPath(); g.moveTo(0, y); g.lineTo(2 + r() * 3, y + 4); g.lineTo(0, y + 8); g.fill(); g.beginPath(); g.moveTo(SW * 2, y); g.lineTo(SW * 2 - 2 - r() * 3, y + 4); g.lineTo(SW * 2, y + 8); g.fill(); }
+    if (i === 0 || i === NS - 1) { g.fillRect(0, SH * 2 - 6 - r() * 10, SW * 2, 30); }
+    stripC.push(c);
+  }
+  stripsBuilt = true;
+}
+function renderStrips(popA, popB) {
+  const box = $('#strips'); box.innerHTML = '';
+  order.forEach((si, pos) => {
+    const b = document.createElement('button'); b.className = 'strip' + (pos === sel ? ' sel' : '') + (pos === popA || pos === popB ? ' pop' : '');
+    b.setAttribute('aria-label', 'Смужка ' + (pos + 1));
+    b.appendChild(stripC[si]); b.onclick = () => tapStrip(pos); box.appendChild(b);
+  });
+  box.classList.toggle('solved', !!S.shred);
+}
+function tapStrip(pos) {
+  if (S.shred) return;
+  if (sel < 0) { sel = pos; tone(520, .05, 'triangle', .05); renderStrips(); return; }
+  if (sel === pos) { sel = -1; renderStrips(); return; }
+  [order[sel], order[pos]] = [order[pos], order[sel]];
+  const a = sel; sel = -1; swish(); renderStrips(a, pos);
+  const right = order.filter((v, i) => v === i).length;
+  if (right === NS) {
+    solve('shred'); stampSnd();
+    setTimeout(() => { renderStrips(); shDone(true); }, 200);
+  } else fb('#shFb', right >= 4 ? 'Майже! Ще трошки — вже щось читається.' : '');
+}
+function shDone(fresh) {
+  fb('#shFb', 'Ордер відновлено! Ім’я хтось старанно порізав, але першу букву видно чітко.', 'ok');
+  $('#shTrait').innerHTML = traitHTML('shred', 'Особливі прикмети в ордері — «фест гарна». Детектив, звісно, писав об’єктивно.');
+  if (fresh) setTimeout(() => $('#shTrait').scrollIntoView({ behavior: 'smooth', block: 'center' }), 600);
+}
+INIT.shred = async () => {
+  if (!stripsBuilt) { try { await document.fonts.ready; } catch (e) {} if (!stripsBuilt) buildStrips(); }
+  if (S.shred) order = [0, 1, 2, 3, 4, 5];
+  sel = -1; renderStrips(); $('#shTrait').innerHTML = ''; fb('#shFb', '');
+  if (S.shred) shDone(false);
+};
+
+// ---------- D. ШИФР ----------
+const AL = 'АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯ', NA = AL.length, STEP = 360 / NA, KEYN = 7;
+const PLAIN = 'ВОНА ФЕСТ ЛЮБИТЬ КВЕСТИ. І ПРЯМО ЗАРАЗ ПРОХОДИТЬ ОДИН.';
+const shift = (txt, k) => [...txt].map(ch => { const i = AL.indexOf(ch); return i < 0 ? ch : AL[((i + k) % NA + NA) % NA]; }).join('');
+const ENC = shift(PLAIN, KEYN);
+let rot = 0, dk = 0, diskBuilt = false;
+function buildDisk() {
+  const NS_ = 'http://www.w3.org/2000/svg';
+  let h = `<circle r="152" fill="#1a1a1c"/><circle r="116" fill="#d6d0bf"/><circle r="84" fill="#efeadc"/>`;
+  h += `<text y="-140" fill="#8f8b82" style="font-size:8px;letter-spacing:.2em;font-family:Oswald,sans-serif" transform="rotate(${STEP * 4.5})">ШИФР</text>`;
+  for (let i = 0; i < NA; i++) h += `<text transform="rotate(${i * STEP}) translate(0,-133)" fill="#efeadc">${AL[i]}</text>`;
+  h += `<g id="inner">`;
+  for (let i = 0; i < NA; i++) h += `<text transform="rotate(${i * STEP}) translate(0,-100)" fill="#1a1a1c">${AL[i]}</text>`;
+  for (let i = 0; i < NA; i++) h += `<line transform="rotate(${i * STEP + STEP / 2})" y1="-84" y2="-116" stroke="rgba(0,0,0,.15)"/>`;
+  h += `<circle cy="-100" r="11" fill="none" stroke="#c8124f" stroke-width="1.5" opacity=".8"/></g>`;
+  h += `<path d="M-9 -150 L9 -150 L0 -122 Z" fill="#ff3d7f" opacity=".85"/>`;
+  h += `<text y="-6" fill="#1a1a1c" style="font-family:'Playfair Display',serif;font-weight:900;font-size:20px">Ф</text><text y="16" fill="#6b6861" style="font-size:8px;letter-spacing:.2em;font-family:Oswald,sans-serif">ТЕКСТ</text>`;
+  const svg = $('#disk'); svg.innerHTML = h;
+  let drag = null;
+  const ang = e => { const r = svg.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+  svg.addEventListener('pointerdown', e => { if (S.cipher) return; svg.setPointerCapture(e.pointerId); drag = { a0: ang(e), r0: rot }; });
+  svg.addEventListener('pointermove', e => {
+    if (!drag) return;
+    let d = ang(e) - drag.a0; rot = drag.r0 + d; setRot(rot, false);
+  });
+  const end = () => { if (!drag) return; drag = null; setRot(Math.round(rot / STEP) * STEP, true); };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+  diskBuilt = true;
+}
+function setRot(r, snap) {
+  rot = r; $('#inner').setAttribute('transform', `rotate(${r})`);
+  const k = ((Math.round(r / STEP)) % NA + NA) % NA;
+  if (k !== dk) { dk = k; click(); }
+  $('#dK').textContent = 'ЗСУВ ' + k;
+  $('#decTxt').textContent = shift(ENC, -k);
+  if (snap && k === KEYN && !S.cipher) { solve('cipher'); ciDone(true); }
+}
+$('#dL').onclick = () => { if (!S.cipher) setRot(Math.round(rot / STEP) * STEP - STEP, true); };
+$('#dR').onclick = () => { if (!S.cipher) setRot(Math.round(rot / STEP) * STEP + STEP, true); };
+function ciDone(fresh) {
+  $('#decOut').classList.add('ok');
+  fb('#ciFb', 'Ключ 7 — бо все сталося о 19:<b>07</b>. Красиво, напарнице!', 'ok');
+  $('#ciTrait').innerHTML = traitHTML('cipher', '«Прямо зараз проходить один»… Хм. Хто ж то в нас зараз проходить квест? 🤔');
+  if (fresh) setTimeout(() => $('#ciTrait').scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+}
+INIT.cipher = () => {
+  if (!diskBuilt) buildDisk();
+  $('#encTxt').textContent = ENC; $('#ciTrait').innerHTML = ''; $('#decOut').classList.remove('ok');
+  fb('#ciFb', S.w ? '' : 'Ключ — хвилина… А коли все сталося? То знають свідки.');
+  if (S.cipher) { setRot(KEYN * STEP, false); ciDone(false); } else setRot(Math.round(rot / STEP) * STEP, false);
+};
+
+// ---------- ОПІЗНАННЯ ----------
+const LAB = ['Звідки', 'Посмішка', 'Ім’я', 'Квести'];
+const SUS = [
+  { e: '💁‍♀️', n: 'Яся', f: ['Київ, Оболонь. Каже «класно», а не «файно»', 'камери від неї не ламаються, сторіз лем лагають', 'Яся — три букви, на «Я»', 'пройшла всі ескейп-руми Києва'], bad: 0,
+    why: 'Не сходиться: Яся київська, «файно» без акценту не скаже. Алібі підтверджене — вона була на Оболоні.' },
+  { e: '🐈‍⬛', n: 'Кіт Мурко', f: ['Ужгород, підвал на Корзо', 'від його морди камери пітніють', 'Мурко — п’ять букв, і ніякої «Я»', 'ховатися в шафі — то його особистий квест'], bad: 2,
+    why: 'Ім’я не сходиться: «Мурко» — п’ять букв. Відпускаємо, хай спить далі.' },
+  { e: '🏍️', n: 'Мотоцикл «Ява»', f: ['гараж діда у Виноградові', 'посмішки нема, лем фара. Камери знімають нормально', 'Ява — три букви, на «Я»', 'кожна поїздка — квест: заведеться ци ніт'], bad: 1,
+    why: 'Посмішка не сходиться: у «Яви» лем фара, і камери від неї не горять. Хоча дід би посперечався.' },
+  { e: '❓', n: 'Підозрювана №4', secret: 1, f: ['Закарпаття. «Файно» — як рідне', 'камера 03 згоріла від її посмішки', 'три букви, перша «Я» (решта засекречено)', 'проходить квест прямо зараз'], bad: -1 },
+  { e: '👩‍🦰', n: 'Яра', f: ['Берегово, центр', 'одну камеру на Корзо колись таки вирубала', 'Яра — три букви, на «Я»', 'квести? ніт, лем серіали з бабцею Марішкою'], bad: 3,
+    why: 'Хобі не сходиться: Яра квестів не проходить, у неї серіали. Бабця Марішка підтвердить.' },
+];
+INIT.line = () => {
+  $('#profile').innerHTML = KEYS.map(k => `<span>${EV[k].lab}</span><b>${EV[k].full}</b>`).join('');
+  $('#cards').innerHTML = SUS.map((s, i) => `<div class="scard${s.secret ? ' secret' : ''}" id="sc${i}">
+    <div class="av"><span class="emo">${s.e}</span><span class="no">№${i + 1}</span></div>
+    <div class="bd"><h4>${s.n}</h4><dl>${s.f.map((v, j) => `<dt>${LAB[j]}</dt><dd data-j="${j}">${v}</dd>`).join('')}</dl>
+    <button class="acc" data-i="${i}">Це вона!</button><div class="why"></div></div></div>`).join('');
+  $$('#cards .acc').forEach(b => b.onclick = () => accuse(+b.dataset.i));
+};
+function accuse(i) {
+  const s = SUS[i], card = $('#sc' + i);
+  if (s.secret) { stampSnd(); $('#sh-line').hidden = true; cur = null; S.done = 1; save(); runFinal(); return; }
+  buzz(); card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake', 'out');
+  card.querySelector(`dd[data-j="${s.bad}"]`).classList.add('bad');
+  card.querySelector('.why').textContent = s.why;
+}
+
+// ================== ФІНАЛ ==================
+let finRunning = false;
+async function runFinal() {
+  if (finRunning) return; finRunning = true;
+  document.body.classList.remove('bloom'); weather = 'rain'; petals = [];
+  if (!drops.length) rsz();
+  show('final'); fast = false;
+  const F = $('#final'); F.scrollTop = 0;
+  ['#fName', '#fFrom', '#fCrime', '#v0', '#v1', '#v2', '#v3', '#v4', '#vSign'].forEach(s => $(s).textContent = '');
+  $$('#fEv li').forEach(li => li.textContent = '');
+  $('#stamp').classList.remove('on'); $('#verdict').hidden = true; $('#closed').classList.remove('on');
+  const follow = el => { const r = el.getBoundingClientRect(); if (r.bottom > innerHeight - 30) F.scrollBy({ top: r.bottom - innerHeight + 90, behavior: 'smooth' }); };
+  await sleep(700);
+  await type($('#fName'), 'ЯНА', 230);
+  await sleep(500);
+  await type($('#fFrom'), 'Закарпаття. Наша, файна.', 32);
+  await type($('#fCrime'), 'незаконно висока концентрація краси на один Ужгород', 30);
+  const EVL = ['четверо свідків втратили дар мови', 'одна камера згоріла від посмішки', 'три дні пересоленого лате', 'сакура зацвіла в листопаді', 'вкрала серце детектива. Повністю. Без шансу на повернення'];
+  const lis = $$('#fEv li');
+  for (let i = 0; i < EVL.length; i++) { await type(lis[i], EVL[i], 24); follow(lis[i]); await sleep(150); }
+  await sleep(600);
+  $('#stamp').classList.add('on'); setTimeout(() => { stampSnd(); document.body.classList.add('shake'); setTimeout(() => document.body.classList.remove('shake'), 400); }, 330);
+  await sleep(1500);
+  $('#verdict').hidden = false; follow($('#verdict'));
+  const V = ['Суд у складі одного закоханого детектива постановив:', 'довічно бути найфайнішою на світі;', 'щодня отримувати компліменти — мінімум три;', 'посміхатися частіше (камери хай терплять).', 'Апеляції не приймаються. Без кепу.'];
+  for (let i = 0; i < V.length; i++) { const el = $('#v' + i); await type(el, (i >= 1 && i <= 3 ? '— ' : '') + V[i], 26); follow(el); await sleep(220); }
+  await sleep(300);
+  await type($('#vSign'), 'твій детектив Фанат', 60, false);
+  await sleep(800);
+  // СВІТ СТАЄ КОЛЬОРОВИМ
+  document.body.classList.add('bloom'); weather = 'petals'; rainVol(0); music(); chime();
+  for (let i = 0; i < 30; i++) petals.push(mkPetal(false));
+  await sleep(1600);
+  $('#closed').classList.add('on');
+  setTimeout(() => F.scrollTo({ top: F.scrollHeight, behavior: 'smooth' }), 300);
+  finRunning = false;
+}
+$('#final').addEventListener('click', e => { if (e.target.closest('button,a')) return; fast = true; setTimeout(() => fast = false, 2500); });
+$('#replay').onclick = () => {
+  S = { ...blank, intro: 1 }; save(); order = [3, 0, 5, 2, 4, 1]; rot = 0; scrub.value = 0;
+  document.body.classList.remove('bloom'); weather = 'rain'; petals = []; rsz(); rainVol(.055);
+  show('board'); renderBoard();
+};
+$('#toBoard').onclick = () => { show('board'); renderBoard(); };
+
+// ================== ПІДКАЗКИ ==================
+function hint() {
+  const H = {
+    w: 'Перебери кожен варіант часу і для кожного порахуй, скільки свідків тоді бреше. Правильний час — той, де брехун рівно один.',
+    cam: camStage === 0 ? (S.w ? 'Свідки сказали 19:07. Перемотай повзунок саме туди.' : 'Без часу від свідків буде важко. Але можна й перемотувати навмання 😉')
+       : camStage === 1 ? 'Пряма зйомка не працює. А в склі вітрини кав’ярні зліва — відображення. Тицьни на вітрину.'
+       : camStage === 2 ? 'Тисни «Покращити», як в американському серіалі. Тричі.' : 'Тут уже все розкрито.',
+    shred: 'Дивись на рядки: слова мають читатися без розривів. Лінія під «АГЕНЦІЯ» і підпис унизу теж мають бути суцільні. Перша смужка — та, де починаються рядки.',
+    cipher: S.w ? 'Свідки сказали 19:07. Хвилина — 7. Покрути внутрішнє коло на 7 поділок (зсув 7).' : 'Ключ — хвилина, коли все сталося. Спершу дізнайся час у свідків (доказ A).',
+    line: 'Звір кожну картку з профілем зверху. Хтось не підходить по одному пункту. Підходить по всіх чотирьох — лем одна.',
+  };
+  let t;
+  if (cur) t = H[cur];
+  else if (!$('#final').hidden) t = 'Тут уже нич розгадувати не треба. Лем читати й посміхатися 🌸';
+  else if (!$('#intro').hidden) t = 'Тицьни будь-де — текст надрукується швидше.';
+  else {
+    if (!S.w) t = 'Почни з доказу A — свідки. Вони знають час, без нього камера і шифр не підуть.';
+    else if (count() < 4) t = 'Відкривай докази, де ще нема штампа «РОЗКРИТО». Ключ до шифру і камери — час від свідків.';
+    else t = 'Всі докази є — тисни «Опізнання» внизу.';
+  }
+  beep();
+  if (cur) {
+    const id = { w: '#wFb', cam: '#camFb', shred: '#shFb', cipher: '#ciFb' }[cur];
+    if (id) { fb(id, '💡 ' + t); $(id).scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    else { const p = $('#sh-line .paper > p'); p.innerHTML = '💡 ' + t; p.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  } else if (!$('#board').hidden) narrSay('💡 ' + t);
+  else if (!$('#intro').hidden) { fast = true; }
+}
+$('#hintBtn').onclick = hint;
+
+// ================== СТАРТ ==================
+rsz(); requestAnimationFrame(rainLoop);
+document.addEventListener('pointerdown', () => ac(), { once: true });
+})();
+</script>
+</body>
+</html>

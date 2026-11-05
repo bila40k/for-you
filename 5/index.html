@@ -160,6 +160,7 @@
   .cert .sign { font: 700 1.5rem var(--hand); color: var(--pink); }
   .cert .row { display: flex; gap: 8px; }
   .cert .row button { flex: 1; padding: 12px; border-radius: 14px; background: var(--night2); font: 800 .88rem var(--ui); }
+  .cert .next { display: block; text-align: center; padding: 13px; border-radius: 14px; background: var(--gold); color: var(--night); font: 800 .92rem var(--ui); text-decoration: none; }
 
   /* Intro */
   .intro { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; overflow-y: auto;
@@ -797,6 +798,7 @@
         <p>${FINAL_TEXT}</p>
         <div class="sign">— ${SIGNATURE}</div>
         <div class="row"><button id="again">пройти ще раз</button><button id="room">назад у кімнату</button></div>
+        <a class="next" href="../6/">сезон 6 вже тут 🕵️‍♀️ →</a>
       </div>`;
       sky.appendChild(f);
       f.querySelector('#room').onclick = () => sky.querySelector('#skyClose').click();
